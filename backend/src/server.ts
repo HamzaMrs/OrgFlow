@@ -13,9 +13,19 @@ import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 const app = express();
 
 app.use(helmet());
+
+const allowedOrigins = env.CORS_ORIGIN.split(",").map((s) => s.trim());
 app.use(
   cors({
-    origin: env.CORS_ORIGIN.split(",").map((s) => s.trim()),
+    origin(origin, cb) {
+      // Allow same-origin / server-to-server / curl (no Origin header)
+      if (!origin) return cb(null, true);
+      // Allow configured origins + any *.vercel.app preview deploy
+      if (allowedOrigins.includes(origin) || /\.vercel\.app$/.test(new URL(origin).hostname)) {
+        return cb(null, true);
+      }
+      cb(new Error(`CORS blocked: ${origin}`));
+    },
     credentials: true,
   }),
 );

@@ -16,5 +16,10 @@ export const env = {
   DATABASE_URL: required("DATABASE_URL"),
   JWT_SECRET: required("JWT_SECRET", "change-me-in-production"),
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN ?? "7d",
-  CORS_ORIGIN: process.env.CORS_ORIGIN ?? "http://localhost:5173",
+  // In production (Vercel with experimentalServices), frontend and backend share
+  // the same origin, so CORS isn't strictly required. We still accept a
+  // comma-separated list + allow *.vercel.app previews by default.
+  CORS_ORIGIN:
+    process.env.CORS_ORIGIN ??
+    "http://localhost:5173,https://org-flow-eight.vercel.app",
 };

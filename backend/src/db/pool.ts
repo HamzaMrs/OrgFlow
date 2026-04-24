@@ -1,10 +1,22 @@
 import { Pool } from "pg";
 import { env } from "../config/env";
 
+// Enable SSL for managed Postgres providers (Supabase, Neon, RDS, etc.).
+// Supabase pooled connection strings (`...pooler.supabase.com`) already include
+// `sslmode=require`, but we also force a permissive SSL config in production in
+// case the connection string omits it.
+const isManagedPostgres = /supabase\.co|neon\.tech|amazonaws\.com|render\.com/.test(
+  env.DATABASE_URL,
+);
+
 export const pool = new Pool({
   connectionString: env.DATABASE_URL,
   max: 10,
   idleTimeoutMillis: 30_000,
+  ssl:
+    env.NODE_ENV === "production" || isManagedPostgres
+      ? { rejectUnauthorized: false }
+      : undefined,
 });
 
 pool.on("error", (err) => {
