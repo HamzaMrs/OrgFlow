@@ -1,5 +1,6 @@
 import { FormEvent, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { ArrowRight, Loader2 } from "lucide-react";
 import { useAuth } from "./AuthContext";
 import { apiError } from "../../api/client";
 
@@ -31,27 +32,41 @@ export default function LoginPage() {
     }
   }
 
+  function quickFill(role: "admin" | "manager" | "employee") {
+    setEmail(`${role}@orgflow.local`);
+    setPassword("password");
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-brand-50 via-white to-slate-100 px-4">
-      <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-600 text-white shadow-md">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+    <div className="relative flex min-h-screen items-center justify-center bg-white px-4 py-12">
+      <div className="pointer-events-none absolute inset-0 bg-grid opacity-40 [mask-image:radial-gradient(ellipse_at_center,black_20%,transparent_70%)]" />
+
+      <div className="relative w-full max-w-sm">
+        <div className="mb-10 text-center">
+          <div className="mx-auto mb-5 flex h-10 w-10 items-center justify-center rounded-lg bg-neutral-900 text-white shadow-subtle">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
               <path
                 d="M4 7h16M4 12h10M4 17h7"
                 stroke="currentColor"
-                strokeWidth="2"
+                strokeWidth="2.5"
                 strokeLinecap="round"
               />
             </svg>
           </div>
-          <h1 className="text-2xl font-semibold text-slate-900">OrgFlow</h1>
-          <p className="text-sm text-slate-500">Sign in to manage your organization</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-neutral-900">
+            Welcome to OrgFlow
+          </h1>
+          <p className="mt-1 text-sm text-neutral-500">
+            Sign in to continue to your workspace
+          </p>
         </div>
 
-        <form onSubmit={onSubmit} className="card space-y-4 p-6">
+        <form
+          onSubmit={onSubmit}
+          className="surface animate-slide-up space-y-4 p-6 shadow-subtle"
+        >
           {error && (
-            <div className="rounded-md bg-rose-50 p-3 text-sm text-rose-700 ring-1 ring-rose-200">
+            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
               {error}
             </div>
           )}
@@ -67,6 +82,7 @@ export default function LoginPage() {
               className="input"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@company.com"
             />
           </div>
           <div>
@@ -81,16 +97,41 @@ export default function LoginPage() {
               className="input"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
             />
           </div>
           <button type="submit" className="btn-primary w-full" disabled={submitting}>
-            {submitting ? "Signing in..." : "Sign in"}
+            {submitting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <>
+                Continue
+                <ArrowRight className="h-4 w-4" />
+              </>
+            )}
           </button>
-          <p className="text-center text-xs text-slate-500">
-            Seed accounts: admin / manager / employee @orgflow.local · password:{" "}
-            <code className="font-mono">password</code>
-          </p>
         </form>
+
+        <div className="mt-6 space-y-2 text-center">
+          <p className="text-[0.6875rem] uppercase tracking-wider text-neutral-400">
+            Demo accounts
+          </p>
+          <div className="flex justify-center gap-1.5">
+            {(["admin", "manager", "employee"] as const).map((role) => (
+              <button
+                key={role}
+                type="button"
+                onClick={() => quickFill(role)}
+                className="btn-secondary btn-xs capitalize"
+              >
+                {role}
+              </button>
+            ))}
+          </div>
+          <p className="text-[0.6875rem] text-neutral-400">
+            Password: <span className="kbd">password</span>
+          </p>
+        </div>
       </div>
     </div>
   );

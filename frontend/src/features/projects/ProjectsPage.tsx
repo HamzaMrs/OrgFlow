@@ -1,6 +1,15 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import {
+  Calendar,
+  Loader2,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { api, apiError } from "../../api/client";
-import StatusBadge from "../../components/StatusBadge";
+import PageHeader from "../../components/PageHeader";
+import StatusBadge, { statusDotClass } from "../../components/StatusBadge";
 import Modal from "../../components/Modal";
 import { useAuth } from "../auth/AuthContext";
 import type { Project, ProjectStatus, User } from "../../types/models";
@@ -87,11 +96,8 @@ export default function ProjectsPage() {
         due_date: form.due_date || null,
         member_ids: form.member_ids,
       };
-      if (editingId) {
-        await api.patch(`/projects/${editingId}`, payload);
-      } else {
-        await api.post("/projects", payload);
-      }
+      if (editingId) await api.patch(`/projects/${editingId}`, payload);
+      else await api.post("/projects", payload);
       setModalOpen(false);
       await refresh();
     } catch (err) {
@@ -122,7 +128,7 @@ export default function ProjectsPage() {
 
   const columns = useMemo(
     () => [
-      { status: "todo" as const, label: "To do" },
+      { status: "todo" as const, label: "Todo" },
       { status: "in_progress" as const, label: "In progress" },
       { status: "done" as const, label: "Done" },
     ],
@@ -130,115 +136,62 @@ export default function ProjectsPage() {
   );
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Projects</h1>
-          <p className="text-sm text-slate-500">
-            Plan, assign, and track work across the organization.
-          </p>
-        </div>
-        {canEdit && (
-          <button className="btn-primary" onClick={openCreate}>
-            + New project
-          </button>
-        )}
-      </div>
+    <div>
+      <PageHeader
+        title="Projects"
+        description="Plan, assign, and track work across the organization."
+        actions={
+          canEdit ? (
+            <button className="btn-primary" onClick={openCreate}>
+              <Plus className="h-4 w-4" />
+              New project
+            </button>
+          ) : undefined
+        }
+      />
 
       {error && (
-        <div className="rounded-md bg-rose-50 p-3 text-sm text-rose-700 ring-1 ring-rose-200">
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
           {error}
         </div>
       )}
 
       {loading ? (
-        <div className="card p-6 text-slate-500">Loading projects...</div>
+        <div className="flex items-center justify-center py-24 text-neutral-400">
+          <Loader2 className="h-4 w-4 animate-spin" />
+        </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           {columns.map((col) => {
             const items = projects.filter((p) => p.status === col.status);
             return (
-              <div key={col.status} className="rounded-xl bg-slate-100/60 p-3">
-                <div className="mb-3 flex items-center justify-between px-2">
-                  <h3 className="text-sm font-semibold text-slate-700">{col.label}</h3>
-                  <span className="text-xs text-slate-500">{items.length}</span>
+              <div key={col.status} className="space-y-2.5">
+                <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-2">
+                    <span className={`dot ${statusDotClass(col.status)}`} />
+                    <h3 className="text-xs font-semibold tracking-tight text-neutral-700">
+                      {col.label}
+                    </h3>
+                    <span className="text-xs tabular-nums text-neutral-400">
+                      {items.length}
+                    </span>
+                  </div>
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {items.length === 0 && (
-                    <p className="rounded-lg border border-dashed border-slate-300 p-3 text-center text-xs text-slate-400">
+                    <p className="rounded-lg border border-dashed border-neutral-200 p-4 text-center text-[0.6875rem] text-neutral-400">
                       No projects
                     </p>
                   )}
                   {items.map((project) => (
-                    <div key={project.id} className="card p-4">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <div className="truncate text-sm font-semibold text-slate-900">
-                            {project.name}
-                          </div>
-                          {project.description && (
-                            <p className="mt-1 line-clamp-2 text-xs text-slate-500">
-                              {project.description}
-                            </p>
-                          )}
-                        </div>
-                        <StatusBadge status={project.status} />
-                      </div>
-
-                      <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
-                        <span>
-                          {project.tasks_done}/{project.task_count} tasks
-                        </span>
-                        {project.due_date && <span>Due {project.due_date}</span>}
-                      </div>
-
-                      {project.members.length > 0 && (
-                        <div className="mt-3 flex -space-x-2">
-                          {project.members.slice(0, 5).map((m) => (
-                            <div
-                              key={m.id}
-                              title={m.name}
-                              className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-100 text-xs font-medium text-brand-700 ring-2 ring-white"
-                            >
-                              {m.name.slice(0, 1)}
-                            </div>
-                          ))}
-                          {project.members.length > 5 && (
-                            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-xs text-slate-600 ring-2 ring-white">
-                              +{project.members.length - 5}
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {canEdit && (
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          <select
-                            className="input h-8 py-1 text-xs"
-                            value={project.status}
-                            onChange={(e) =>
-                              quickStatusChange(project, e.target.value as ProjectStatus)
-                            }
-                          >
-                            <option value="todo">To do</option>
-                            <option value="in_progress">In progress</option>
-                            <option value="done">Done</option>
-                          </select>
-                          <button
-                            className="btn-secondary h-8 px-3 py-1 text-xs"
-                            onClick={() => openEdit(project)}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            className="btn-danger h-8 px-3 py-1 text-xs"
-                            onClick={() => onDelete(project.id)}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                    <ProjectCard
+                      key={project.id}
+                      project={project}
+                      canEdit={canEdit}
+                      onStatusChange={(status) => quickStatusChange(project, status)}
+                      onEdit={() => openEdit(project)}
+                      onDelete={() => onDelete(project.id)}
+                    />
                   ))}
                 </div>
               </div>
@@ -250,6 +203,11 @@ export default function ProjectsPage() {
       <Modal
         open={modalOpen}
         title={editingId ? "Edit project" : "New project"}
+        description={
+          editingId
+            ? "Update project details and membership."
+            : "Create a project and assign team members."
+        }
         onClose={() => setModalOpen(false)}
         footer={
           <>
@@ -267,7 +225,13 @@ export default function ProjectsPage() {
               className="btn-primary"
               disabled={submitting}
             >
-              {submitting ? "Saving..." : editingId ? "Save changes" : "Create"}
+              {submitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : editingId ? (
+                "Save changes"
+              ) : (
+                "Create project"
+              )}
             </button>
           </>
         }
@@ -278,6 +242,7 @@ export default function ProjectsPage() {
             <input
               className="input"
               required
+              placeholder="Untitled project"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
             />
@@ -285,7 +250,8 @@ export default function ProjectsPage() {
           <div>
             <label className="label">Description</label>
             <textarea
-              className="input min-h-[80px]"
+              className="input min-h-[72px]"
+              placeholder="Optional — context, goals, links"
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
             />
@@ -300,7 +266,7 @@ export default function ProjectsPage() {
                   setForm({ ...form, status: e.target.value as ProjectStatus })
                 }
               >
-                <option value="todo">To do</option>
+                <option value="todo">Todo</option>
                 <option value="in_progress">In progress</option>
                 <option value="done">Done</option>
               </select>
@@ -343,32 +309,177 @@ export default function ProjectsPage() {
           </div>
           <div>
             <label className="label">Team members</label>
-            <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-slate-200 p-2">
-              {users.map((u) => (
-                <label
-                  key={u.id}
-                  className="flex cursor-pointer items-center gap-2 rounded px-2 py-1 text-sm hover:bg-slate-50"
-                >
-                  <input
-                    type="checkbox"
-                    checked={form.member_ids.includes(u.id)}
-                    onChange={(e) => {
-                      setForm((prev) => ({
-                        ...prev,
-                        member_ids: e.target.checked
-                          ? [...prev.member_ids, u.id]
-                          : prev.member_ids.filter((id) => id !== u.id),
-                      }));
-                    }}
-                  />
-                  <span className="text-slate-700">{u.name}</span>
-                  <span className="ml-auto text-xs capitalize text-slate-400">{u.role}</span>
-                </label>
-              ))}
+            <div className="max-h-40 space-y-0.5 overflow-y-auto rounded-lg border border-neutral-200 p-1.5">
+              {users.map((u) => {
+                const checked = form.member_ids.includes(u.id);
+                return (
+                  <label
+                    key={u.id}
+                    className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-neutral-50"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={(e) => {
+                        setForm((prev) => ({
+                          ...prev,
+                          member_ids: e.target.checked
+                            ? [...prev.member_ids, u.id]
+                            : prev.member_ids.filter((id) => id !== u.id),
+                        }));
+                      }}
+                      className="h-3.5 w-3.5 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900"
+                    />
+                    <span className="font-medium text-neutral-700">{u.name}</span>
+                    <span className="ml-auto capitalize text-neutral-400">
+                      {u.role}
+                    </span>
+                  </label>
+                );
+              })}
             </div>
           </div>
         </form>
       </Modal>
+    </div>
+  );
+}
+
+function ProjectCard({
+  project,
+  canEdit,
+  onStatusChange,
+  onEdit,
+  onDelete,
+}: {
+  project: Project;
+  canEdit: boolean;
+  onStatusChange: (status: ProjectStatus) => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const progress =
+    project.task_count > 0
+      ? Math.round((project.tasks_done / project.task_count) * 100)
+      : 0;
+
+  return (
+    <div className="group surface-hover p-4">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="truncate text-sm font-semibold tracking-tight text-neutral-900">
+            {project.name}
+          </div>
+          {project.description && (
+            <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-neutral-500">
+              {project.description}
+            </p>
+          )}
+        </div>
+        {canEdit && (
+          <div className="relative">
+            <button
+              className="btn-ghost btn-xs -mr-1.5 opacity-0 transition-opacity group-hover:opacity-100"
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-label="More actions"
+            >
+              <MoreHorizontal className="h-3.5 w-3.5" />
+            </button>
+            {menuOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setMenuOpen(false)}
+                />
+                <div className="absolute right-0 top-7 z-20 w-40 animate-slide-up overflow-hidden rounded-lg border border-neutral-200 bg-white py-1 shadow-pop">
+                  <button
+                    className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-neutral-700 transition-colors hover:bg-neutral-50"
+                    onClick={() => {
+                      onEdit();
+                      setMenuOpen(false);
+                    }}
+                  >
+                    <Pencil className="h-3 w-3" />
+                    Edit
+                  </button>
+                  <button
+                    className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-red-600 transition-colors hover:bg-red-50"
+                    onClick={() => {
+                      onDelete();
+                      setMenuOpen(false);
+                    }}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    Delete
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      {project.task_count > 0 && (
+        <div className="mt-3">
+          <div className="mb-1 flex items-center justify-between text-[0.6875rem] text-neutral-400">
+            <span>
+              {project.tasks_done}/{project.task_count} tasks
+            </span>
+            <span className="tabular-nums">{progress}%</span>
+          </div>
+          <div className="h-1 overflow-hidden rounded-full bg-neutral-100">
+            <div
+              className="h-full rounded-full bg-neutral-900 transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          {project.members.length > 0 && (
+            <div className="flex -space-x-1.5">
+              {project.members.slice(0, 4).map((m) => (
+                <div
+                  key={m.id}
+                  title={m.name}
+                  className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-neutral-100 text-[0.5625rem] font-semibold text-neutral-600"
+                >
+                  {m.name.slice(0, 1)}
+                </div>
+              ))}
+              {project.members.length > 4 && (
+                <div className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-neutral-100 text-[0.5625rem] font-semibold text-neutral-500">
+                  +{project.members.length - 4}
+                </div>
+              )}
+            </div>
+          )}
+          {project.due_date && (
+            <span className="flex items-center gap-1 text-[0.6875rem] text-neutral-400">
+              <Calendar className="h-3 w-3" />
+              {project.due_date}
+            </span>
+          )}
+        </div>
+        <StatusBadge status={project.status} />
+      </div>
+
+      {canEdit && (
+        <div className="mt-3 -mx-1 border-t border-neutral-100 pt-3">
+          <select
+            className="input btn-xs h-6 w-full cursor-pointer text-[0.6875rem]"
+            value={project.status}
+            onChange={(e) => onStatusChange(e.target.value as ProjectStatus)}
+          >
+            <option value="todo">Move to Todo</option>
+            <option value="in_progress">Move to In progress</option>
+            <option value="done">Move to Done</option>
+          </select>
+        </div>
+      )}
     </div>
   );
 }

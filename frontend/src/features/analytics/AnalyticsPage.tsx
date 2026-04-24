@@ -14,11 +14,13 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { Loader2 } from "lucide-react";
 import { api, apiError } from "../../api/client";
 import type { AnalyticsSummary } from "../../types/models";
+import PageHeader from "../../components/PageHeader";
 import { statusLabel } from "../../components/StatusBadge";
 
-const COLORS = ["#94a3b8", "#f59e0b", "#10b981"];
+const COLORS = ["#d4d4d4", "#fbbf24", "#10b981"];
 
 export default function AnalyticsPage() {
   const [data, setData] = useState<AnalyticsSummary | null>(null);
@@ -31,8 +33,14 @@ export default function AnalyticsPage() {
       .catch((err) => setError(apiError(err)));
   }, []);
 
-  if (error) return <div className="card p-6 text-rose-600">{error}</div>;
-  if (!data) return <div className="card p-6 text-slate-500">Loading analytics...</div>;
+  if (error)
+    return <div className="surface p-6 text-sm text-red-600">{error}</div>;
+  if (!data)
+    return (
+      <div className="flex items-center justify-center py-24 text-neutral-400">
+        <Loader2 className="h-4 w-4 animate-spin" />
+      </div>
+    );
 
   const projectStatusData = data.projectStatus.map((s, i) => ({
     name: statusLabel(s.status),
@@ -46,17 +54,17 @@ export default function AnalyticsPage() {
   }));
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Analytics</h1>
-        <p className="text-sm text-slate-500">
-          Project progress, workload distribution, and completion trends.
-        </p>
-      </div>
+    <div>
+      <PageHeader
+        title="Analytics"
+        description="Project progress, workload distribution, and completion trends."
+      />
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="card p-5">
-          <h3 className="mb-4 text-sm font-semibold text-slate-900">Project distribution</h3>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <ChartCard
+          title="Project distribution"
+          hint="By status"
+        >
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -65,58 +73,175 @@ export default function AnalyticsPage() {
                   dataKey="value"
                   nameKey="name"
                   outerRadius={100}
-                  label
+                  strokeWidth={0}
+                  label={{ fontSize: 11, fill: "#737373" }}
                 >
                   {projectStatusData.map((entry, idx) => (
                     <Cell key={idx} fill={entry.fill} />
                   ))}
                 </Pie>
-                <Tooltip />
-                <Legend />
+                <Tooltip content={<MinimalTooltip />} />
+                <Legend
+                  verticalAlign="bottom"
+                  iconType="circle"
+                  iconSize={8}
+                  formatter={(v) => (
+                    <span className="text-xs text-neutral-600">{v}</span>
+                  )}
+                />
               </PieChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </ChartCard>
 
-        <div className="card p-5">
-          <h3 className="mb-4 text-sm font-semibold text-slate-900">Completion rate by project</h3>
+        <ChartCard
+          title="Completion rate"
+          hint="Per project, expressed as percentage"
+        >
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={completionLine}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="name" stroke="#64748b" fontSize={12} />
-                <YAxis stroke="#64748b" fontSize={12} domain={[0, 100]} unit="%" />
-                <Tooltip formatter={(v: number) => `${v}%`} />
+              <LineChart data={completionLine} margin={{ top: 10, right: 10, left: -20 }}>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="#f3f4f6"
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="name"
+                  stroke="#a3a3a3"
+                  fontSize={11}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  stroke="#a3a3a3"
+                  fontSize={11}
+                  domain={[0, 100]}
+                  unit="%"
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <Tooltip
+                  content={<MinimalTooltip suffix="%" />}
+                  cursor={{ stroke: "#e5e5e5", strokeDasharray: "3 3" }}
+                />
                 <Line
                   type="monotone"
                   dataKey="rate"
-                  stroke="#3c6bff"
+                  stroke="#0a0a0a"
                   strokeWidth={2}
-                  dot={{ r: 4 }}
+                  dot={{ r: 3, fill: "#0a0a0a", strokeWidth: 0 }}
+                  activeDot={{ r: 5, fill: "#0a0a0a", strokeWidth: 2, stroke: "#fff" }}
                 />
               </LineChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </ChartCard>
       </div>
 
-      <div className="card p-5">
-        <h3 className="mb-4 text-sm font-semibold text-slate-900">Workload by person</h3>
-        <div className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data.workload}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis dataKey="name" stroke="#64748b" fontSize={12} />
-              <YAxis stroke="#64748b" fontSize={12} allowDecimals={false} />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="todo" stackId="a" fill="#94a3b8" name="To do" />
-              <Bar dataKey="in_progress" stackId="a" fill="#f59e0b" name="In progress" />
-              <Bar dataKey="done" stackId="a" fill="#10b981" name="Done" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+      <div className="mt-4">
+        <ChartCard title="Workload by person" hint="Tasks per assignee, by status">
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={data.workload} margin={{ top: 10, right: 10, left: -20 }}>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="#f3f4f6"
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="name"
+                  stroke="#a3a3a3"
+                  fontSize={11}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  stroke="#a3a3a3"
+                  fontSize={11}
+                  tickLine={false}
+                  axisLine={false}
+                  allowDecimals={false}
+                />
+                <Tooltip content={<MinimalTooltip />} cursor={{ fill: "#f9fafb" }} />
+                <Legend
+                  verticalAlign="top"
+                  iconType="circle"
+                  iconSize={8}
+                  wrapperStyle={{ paddingBottom: 12 }}
+                  formatter={(v) => (
+                    <span className="text-xs text-neutral-600">{v}</span>
+                  )}
+                />
+                <Bar dataKey="todo" stackId="a" fill="#d4d4d4" name="Todo" />
+                <Bar dataKey="in_progress" stackId="a" fill="#fbbf24" name="In progress" />
+                <Bar dataKey="done" stackId="a" fill="#10b981" name="Done" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartCard>
       </div>
+    </div>
+  );
+}
+
+function ChartCard({
+  title,
+  hint,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="surface p-5">
+      <div className="mb-4">
+        <h3 className="text-sm font-semibold tracking-tight text-neutral-900">
+          {title}
+        </h3>
+        {hint && <p className="text-xs text-neutral-500">{hint}</p>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+interface TooltipEntry {
+  name?: string | number;
+  value?: number | string;
+  color?: string;
+}
+function MinimalTooltip({
+  active,
+  payload,
+  label,
+  suffix = "",
+}: {
+  active?: boolean;
+  payload?: TooltipEntry[];
+  label?: string | number;
+  suffix?: string;
+}) {
+  if (!active || !payload || payload.length === 0) return null;
+  return (
+    <div className="rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-xs shadow-pop">
+      {label !== undefined && (
+        <div className="mb-0.5 font-medium text-neutral-900">{label}</div>
+      )}
+      {payload.map((entry, i) => (
+        <div key={i} className="flex items-center gap-1.5 text-neutral-600">
+          <span
+            className="h-2 w-2 rounded-full"
+            style={{ background: entry.color }}
+          />
+          <span className="capitalize">{entry.name}:</span>
+          <span className="tabular-nums text-neutral-900">
+            {entry.value}
+            {suffix}
+          </span>
+        </div>
+      ))}
     </div>
   );
 }

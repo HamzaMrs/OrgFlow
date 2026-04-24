@@ -1,6 +1,8 @@
 import { FormEvent, useEffect, useState } from "react";
+import { Building2, Loader2, Pencil, Plus, Trash2, Users } from "lucide-react";
 import { api, apiError } from "../../api/client";
 import Modal from "../../components/Modal";
+import PageHeader from "../../components/PageHeader";
 import { useAuth } from "../auth/AuthContext";
 import type { Department } from "../../types/models";
 
@@ -50,11 +52,8 @@ export default function DepartmentsPage() {
     setError(null);
     try {
       const payload = { name, description: description || null };
-      if (editingId) {
-        await api.patch(`/departments/${editingId}`, payload);
-      } else {
-        await api.post("/departments", payload);
-      }
+      if (editingId) await api.patch(`/departments/${editingId}`, payload);
+      else await api.post("/departments", payload);
       setModalOpen(false);
       await refresh();
     } catch (err) {
@@ -75,56 +74,74 @@ export default function DepartmentsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Departments</h1>
-          <p className="text-sm text-slate-500">Organize your team structure.</p>
-        </div>
-        {canEdit && (
-          <button className="btn-primary" onClick={openCreate}>
-            + New department
-          </button>
-        )}
-      </div>
+    <div>
+      <PageHeader
+        title="Departments"
+        description="Organize your team structure and reporting lines."
+        actions={
+          canEdit ? (
+            <button className="btn-primary" onClick={openCreate}>
+              <Plus className="h-4 w-4" />
+              New department
+            </button>
+          ) : undefined
+        }
+      />
 
       {error && (
-        <div className="rounded-md bg-rose-50 p-3 text-sm text-rose-700 ring-1 ring-rose-200">
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
           {error}
         </div>
       )}
 
       {loading ? (
-        <div className="card p-6 text-slate-500">Loading...</div>
+        <div className="flex items-center justify-center py-24 text-neutral-400">
+          <Loader2 className="h-4 w-4 animate-spin" />
+        </div>
+      ) : departments.length === 0 ? (
+        <div className="surface flex flex-col items-center justify-center py-16 text-center">
+          <Building2 className="h-6 w-6 text-neutral-300" />
+          <h3 className="mt-3 text-sm font-medium text-neutral-900">
+            No departments yet
+          </h3>
+          <p className="mt-1 text-xs text-neutral-500">
+            Create one to group your team.
+          </p>
+        </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {departments.map((dept) => (
-            <div key={dept.id} className="card p-5">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="text-base font-semibold text-slate-900">{dept.name}</h3>
-                  <p className="mt-1 text-sm text-slate-500">
-                    {dept.description ?? "No description"}
-                  </p>
+            <div key={dept.id} className="surface-hover group p-5">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-neutral-100">
+                  <Building2 className="h-4 w-4 text-neutral-600" />
                 </div>
-                <span className="badge bg-brand-50 text-brand-700">
-                  {dept.member_count} {dept.member_count === 1 ? "member" : "members"}
+                <span className="badge-neutral">
+                  <Users className="h-2.5 w-2.5" />
+                  {dept.member_count}
                 </span>
               </div>
+              <h3 className="mt-3 text-sm font-semibold tracking-tight text-neutral-900">
+                {dept.name}
+              </h3>
+              <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-neutral-500">
+                {dept.description ?? "No description"}
+              </p>
               {canEdit && (
-                <div className="mt-4 flex gap-2">
+                <div className="mt-4 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                   <button
-                    className="btn-secondary h-8 px-3 py-1 text-xs"
+                    className="btn-secondary btn-xs"
                     onClick={() => openEdit(dept)}
                   >
+                    <Pencil className="h-3 w-3" />
                     Edit
                   </button>
                   {canDelete && (
                     <button
-                      className="btn-danger h-8 px-3 py-1 text-xs"
+                      className="btn-ghost btn-xs text-red-600 hover:bg-red-50"
                       onClick={() => onDelete(dept.id)}
                     >
-                      Delete
+                      <Trash2 className="h-3 w-3" />
                     </button>
                   )}
                 </div>
@@ -154,7 +171,13 @@ export default function DepartmentsPage() {
               className="btn-primary"
               disabled={submitting}
             >
-              {submitting ? "Saving..." : editingId ? "Save" : "Create"}
+              {submitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : editingId ? (
+                "Save"
+              ) : (
+                "Create"
+              )}
             </button>
           </>
         }
@@ -165,6 +188,7 @@ export default function DepartmentsPage() {
             <input
               className="input"
               required
+              placeholder="Engineering, Design, Operations..."
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
@@ -172,7 +196,8 @@ export default function DepartmentsPage() {
           <div>
             <label className="label">Description</label>
             <textarea
-              className="input min-h-[80px]"
+              className="input min-h-[72px]"
+              placeholder="Optional — mission, scope, reporting line"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />

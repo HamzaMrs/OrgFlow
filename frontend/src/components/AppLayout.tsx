@@ -1,166 +1,213 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
 import clsx from "clsx";
-import { useState } from "react";
+import {
+  BarChart3,
+  Building2,
+  FolderKanban,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  Search,
+  Users,
+  X,
+} from "lucide-react";
 import { useAuth } from "../features/auth/AuthContext";
 
 const navItems = [
-  { to: "/", label: "Dashboard", end: true, icon: DashboardIcon },
-  { to: "/projects", label: "Projects", icon: ProjectsIcon },
-  { to: "/team", label: "Team", icon: TeamIcon },
-  { to: "/departments", label: "Departments", icon: DeptIcon },
-  { to: "/analytics", label: "Analytics", icon: AnalyticsIcon },
+  { to: "/", label: "Dashboard", end: true, icon: LayoutDashboard },
+  { to: "/projects", label: "Projects", icon: FolderKanban },
+  { to: "/team", label: "Team", icon: Users },
+  { to: "/departments", label: "Departments", icon: Building2 },
+  { to: "/analytics", label: "Analytics", icon: BarChart3 },
 ];
 
 export default function AppLayout() {
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
+  const location = useLocation();
+
+  useEffect(() => {
+    setOpen(false);
+  }, [location.pathname]);
+
+  const initials = (user?.name ?? "")
+    .split(" ")
+    .map((p) => p[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
-      <aside
-        className={clsx(
-          "fixed inset-y-0 left-0 z-30 w-64 transform border-r border-slate-200 bg-white px-4 py-6 transition-transform lg:static lg:translate-x-0",
-          open ? "translate-x-0" : "-translate-x-full",
-        )}
-      >
-        <div className="mb-8 flex items-center gap-2 px-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-white">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M4 7h16M4 12h10M4 17h7"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-            </svg>
-          </div>
-          <div>
-            <div className="text-base font-semibold text-slate-900">OrgFlow</div>
-            <div className="text-xs text-slate-500">Business OS</div>
-          </div>
-        </div>
-
-        <nav className="space-y-1">
-          {navItems.map(({ to, label, end, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              onClick={() => setOpen(false)}
-              className={({ isActive }) =>
-                clsx(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                  isActive
-                    ? "bg-brand-50 text-brand-700"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
-                )
-              }
-            >
-              <Icon className="h-4 w-4" />
-              {label}
-            </NavLink>
-          ))}
-        </nav>
-
-        <div className="absolute bottom-6 left-4 right-4 space-y-2">
-          <div className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200">
-            <div className="text-sm font-medium text-slate-900">{user?.name}</div>
-            <div className="text-xs capitalize text-slate-500">{user?.role}</div>
-          </div>
-          <button onClick={logout} className="btn-secondary w-full">
-            Sign out
-          </button>
-        </div>
-      </aside>
-
-      {open && (
-        <div
-          className="fixed inset-0 z-20 bg-slate-900/30 lg:hidden"
-          onClick={() => setOpen(false)}
-        />
-      )}
+    <div className="flex min-h-screen bg-white">
+      <Sidebar open={open} onClose={() => setOpen(false)} />
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white/80 px-4 py-3 backdrop-blur lg:px-8">
-          <button
-            className="rounded-md p-2 text-slate-600 hover:bg-slate-100 lg:hidden"
-            onClick={() => setOpen((v) => !v)}
-            aria-label="Toggle navigation"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M4 6h16M4 12h16M4 18h16"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-            </svg>
-          </button>
-          <div className="text-sm text-slate-500">
-            Welcome back, <span className="font-medium text-slate-900">{user?.name}</span>
+        <header className="glass sticky top-0 z-30">
+          <div className="flex h-14 items-center gap-3 px-4 lg:px-8">
+            <button
+              className="btn-ghost btn-sm -ml-2 lg:hidden"
+              onClick={() => setOpen(true)}
+              aria-label="Open menu"
+            >
+              <Menu className="h-4 w-4" />
+            </button>
+
+            <div className="flex flex-1 items-center gap-2 lg:gap-4">
+              <div className="hidden items-center gap-2 text-sm text-neutral-400 lg:flex">
+                <span className="font-medium text-neutral-900">OrgFlow</span>
+                <span className="text-neutral-300">/</span>
+                <CurrentBreadcrumb />
+              </div>
+              <div className="relative ml-auto w-full max-w-xs">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-neutral-400" />
+                <input
+                  type="search"
+                  placeholder="Search..."
+                  className="input h-8 pl-8 text-xs"
+                  disabled
+                />
+                <span className="kbd pointer-events-none absolute right-2 top-1/2 -translate-y-1/2">
+                  ⌘K
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="hidden items-center gap-2.5 rounded-full border border-neutral-200 py-1 pl-1 pr-3 sm:flex">
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-neutral-900 text-[0.625rem] font-semibold text-white">
+                  {initials || "·"}
+                </div>
+                <span className="text-xs font-medium text-neutral-700">{user?.name}</span>
+                <span className="text-[0.6875rem] capitalize text-neutral-400">
+                  {user?.role}
+                </span>
+              </div>
+              <button
+                onClick={logout}
+                className="btn-ghost btn-sm"
+                aria-label="Sign out"
+                title="Sign out"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
-          <div className="badge bg-brand-50 text-brand-700 capitalize">{user?.role}</div>
         </header>
 
-        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 lg:px-8">
+        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 lg:px-8 lg:py-10">
           <Outlet />
         </main>
+
+        <footer className="border-t border-neutral-200 px-4 py-4 text-xs text-neutral-400 lg:px-8">
+          © 2026 OrgFlow · Built for clarity
+        </footer>
       </div>
     </div>
   );
 }
 
-type IconProps = { className?: string };
+function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { user, logout } = useAuth();
+  const initials = (user?.name ?? "")
+    .split(" ")
+    .map((p) => p[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 
-function DashboardIcon({ className }: IconProps) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none">
-      <path
-        d="M4 13h6V4H4v9zm0 7h6v-5H4v5zm10 0h6V11h-6v9zm0-16v5h6V4h-6z"
-        fill="currentColor"
-      />
-    </svg>
+    <>
+      {open && (
+        <div
+          className="fixed inset-0 z-30 bg-neutral-950/20 backdrop-blur-sm lg:hidden"
+          onClick={onClose}
+        />
+      )}
+      <aside
+        className={clsx(
+          "fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-neutral-200 bg-white transition-transform duration-200 ease-out lg:static lg:translate-x-0",
+          open ? "translate-x-0" : "-translate-x-full",
+        )}
+      >
+        <div className="flex h-14 items-center justify-between border-b border-neutral-200 px-4">
+          <div className="flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-neutral-900 text-white">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M4 7h16M4 12h10M4 17h7"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </div>
+            <span className="text-sm font-semibold tracking-tight text-neutral-900">
+              OrgFlow
+            </span>
+          </div>
+          <button
+            className="btn-ghost btn-sm lg:hidden"
+            onClick={onClose}
+            aria-label="Close menu"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
+          <div className="px-2 pb-2 text-[0.6875rem] font-medium uppercase tracking-wider text-neutral-400">
+            Workspace
+          </div>
+          {navItems.map(({ to, label, end, icon: Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={end}
+              className={({ isActive }) =>
+                clsx("nav-link", isActive && "nav-link-active")
+              }
+            >
+              <Icon className="h-4 w-4 shrink-0" strokeWidth={2} />
+              {label}
+            </NavLink>
+          ))}
+        </nav>
+
+        <div className="border-t border-neutral-200 p-3">
+          <div className="flex items-center gap-2.5 rounded-lg p-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-900 text-xs font-semibold text-white">
+              {initials || "·"}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-xs font-medium text-neutral-900">
+                {user?.name}
+              </div>
+              <div className="truncate text-[0.6875rem] capitalize text-neutral-500">
+                {user?.role}
+              </div>
+            </div>
+            <button
+              onClick={logout}
+              className="btn-ghost btn-sm shrink-0"
+              aria-label="Sign out"
+              title="Sign out"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      </aside>
+    </>
   );
 }
-function ProjectsIcon({ className }: IconProps) {
+
+function CurrentBreadcrumb() {
+  const { pathname } = useLocation();
+  const segment = pathname.split("/")[1] || "dashboard";
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none">
-      <path
-        d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-}
-function TeamIcon({ className }: IconProps) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none">
-      <path
-        d="M8 11a4 4 0 100-8 4 4 0 000 8zm8 0a3 3 0 100-6 3 3 0 000 6zm-8 2c-4 0-7 2-7 5v2h14v-2c0-3-3-5-7-5zm8 0c-.7 0-1.3.1-2 .3 1.3 1.2 2 2.9 2 4.7v2h7v-2c0-3-3-5-7-5z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-}
-function DeptIcon({ className }: IconProps) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none">
-      <path
-        d="M3 21V7l9-4 9 4v14h-6v-6h-6v6H3z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-}
-function AnalyticsIcon({ className }: IconProps) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none">
-      <path
-        d="M4 20h16M6 16V8m6 8V4m6 12v-6"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-    </svg>
+    <span className="font-medium capitalize text-neutral-700">
+      {segment === "" ? "Dashboard" : segment}
+    </span>
   );
 }
