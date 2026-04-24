@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { useAuth } from "../features/auth/AuthContext";
+import { LogoIcon, LogoText } from "./Logo";
 
 const navItems = [
   { to: "/", label: "Dashboard", end: true, icon: LayoutDashboard },
@@ -55,7 +56,7 @@ export default function AppLayout() {
 
             <div className="flex flex-1 items-center gap-2 lg:gap-4">
               <div className="hidden items-center gap-2 text-sm text-neutral-400 lg:flex">
-                <span className="font-medium text-neutral-900">OrgFlow</span>
+                <LogoText className="text-sm" />
                 <span className="text-neutral-300">/</span>
                 <CurrentBreadcrumb />
               </div>
@@ -132,19 +133,8 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
       >
         <div className="flex h-14 items-center justify-between border-b border-neutral-200 px-4">
           <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-neutral-900 text-white">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M4 7h16M4 12h10M4 17h7"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </div>
-            <span className="text-sm font-semibold tracking-tight text-neutral-900">
-              OrgFlow
-            </span>
+            <LogoIcon className="h-7 w-7" />
+            <LogoText className="text-sm" />
           </div>
           <button
             className="btn-ghost btn-sm lg:hidden"

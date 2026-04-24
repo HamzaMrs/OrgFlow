@@ -3,6 +3,7 @@ import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { useAuth } from "./AuthContext";
 import { apiError } from "../../api/client";
+import { LogoIcon, LogoText } from "../../components/Logo";
 
 export default function LoginPage() {
   const { user, login, loading } = useAuth();
@@ -43,18 +44,9 @@ export default function LoginPage() {
 
       <div className="relative w-full max-w-sm">
         <div className="mb-10 text-center">
-          <div className="mx-auto mb-5 flex h-10 w-10 items-center justify-center rounded-lg bg-neutral-900 text-white shadow-subtle">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M4 7h16M4 12h10M4 17h7"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-              />
-            </svg>
-          </div>
+          <LogoIcon className="mx-auto mb-5 h-12 w-12" />
           <h1 className="text-2xl font-semibold tracking-tight text-neutral-900">
-            Welcome to OrgFlow
+            Welcome to <LogoText />
           </h1>
           <p className="mt-1 text-sm text-neutral-500">
             Sign in to continue to your workspace
