@@ -22,24 +22,32 @@ declare global {
 }
 
 export function requireAuth(req: Request, _res: Response, next: NextFunction): void {
-  const header = req.headers.authorization;
-  if (!header || !header.startsWith("Bearer ")) {
-    return next(unauthorized("Missing bearer token"));
+  let token: string | undefined = req.cookies?.token;
+
+  if (!token) {
+    const header = req.headers.authorization;
+    if (header && header.startsWith("Bearer ")) {
+      token = header.slice("Bearer ".length).trim();
+    }
   }
-  const token = header.slice("Bearer ".length).trim();
+
+  if (!token) {
+    return next(unauthorized("Jeton d'authentification manquant"));
+  }
+
   try {
     const payload = jwt.verify(token, env.JWT_SECRET) as AuthUser & { iat: number; exp: number };
     req.user = { id: payload.id, email: payload.email, role: payload.role, name: payload.name };
     next();
   } catch {
-    next(unauthorized("Invalid or expired token"));
+    next(unauthorized("Jeton invalide ou expiré"));
   }
 }
 
 export const requireRole =
   (...roles: UserRole[]) =>
   (req: Request, _res: Response, next: NextFunction): void => {
-    if (!req.user) return next(unauthorized());
-    if (!roles.includes(req.user.role)) return next(forbidden("Insufficient role"));
+    if (!req.user) return next(unauthorized("Non autorisé"));
+    if (!roles.includes(req.user.role)) return next(forbidden("Rôle insuffisant"));
     next();
   };

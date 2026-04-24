@@ -9,8 +9,10 @@ import { departmentsRouter } from "./features/departments/departments.routes";
 import { projectsRouter } from "./features/projects/projects.routes";
 import { analyticsRouter } from "./features/analytics/analytics.routes";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
+import cookieParser from "cookie-parser";
 
-const app = express();
+export const app = express();
+app.use(cookieParser());
 
 app.use(helmet());
 
@@ -45,6 +47,10 @@ app.use("/api/analytics", analyticsRouter);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-app.listen(env.PORT, () => {
-  console.log(`[orgflow-api] listening on http://0.0.0.0:${env.PORT}`);
-});
+if (!process.env.VERCEL) {
+  app.listen(env.PORT, () => {
+    console.log(`[orgflow-api] listening on http://0.0.0.0:${env.PORT}`);
+  });
+}
+
+export default app;

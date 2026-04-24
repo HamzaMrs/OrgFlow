@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { api, getToken, setToken } from "../../api/client";
+import { api } from "../../api/client";
 import type { AuthUser, UserRole } from "../../types/models";
 
 interface AuthContextValue {
@@ -15,15 +15,10 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState<boolean>(Boolean(getToken()));
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     let cancelled = false;
-    const token = getToken();
-    if (!token) {
-      setLoading(false);
-      return;
-    }
     api
       .get<AuthUser>("/auth/me")
       .then((res) => {
@@ -41,17 +36,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    const res = await api.post<{ token: string; user: AuthUser }>("/auth/login", {
+    const res = await api.post<{ user: AuthUser }>("/auth/login", {
       email,
       password,
     });
-    setToken(res.data.token);
     setUser(res.data.user);
   }, []);
 
-  const logout = useCallback(() => {
-    setToken(null);
-    setUser(null);
+  const logout = useCallback(async () => {
+    try {
+      await api.post("/auth/logout");
+    } catch {
+      // Ignore errors on logout
+    } finally {
+      setUser(null);
+    }
   }, []);
 
   const hasRole = useCallback(

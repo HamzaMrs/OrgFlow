@@ -14,7 +14,6 @@ import {
 } from "recharts";
 import {
   Activity,
-  Building2,
   CheckCircle2,
   FolderKanban,
   Loader2,

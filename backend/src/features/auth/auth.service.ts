@@ -19,10 +19,10 @@ export async function login(email: string, password: string) {
     [email],
   );
   const user = rows[0];
-  if (!user) throw unauthorized("Invalid credentials");
+  if (!user) throw unauthorized("Identifiants invalides");
 
   const ok = await bcrypt.compare(password, user.password_hash);
-  if (!ok) throw unauthorized("Invalid credentials");
+  if (!ok) throw unauthorized("Identifiants invalides");
 
   const token = jwt.sign(
     { id: user.id, email: user.email, role: user.role, name: user.name },
@@ -40,13 +40,12 @@ export async function register(input: {
   name: string;
   email: string;
   password: string;
-  role?: UserRole;
 }) {
   const existing = await query("SELECT 1 FROM users WHERE email = $1", [input.email]);
-  if (existing.rowCount > 0) throw conflict("Email already registered");
+  if (existing.rowCount > 0) throw conflict("Adresse e-mail déjà enregistrée");
 
   const password_hash = await bcrypt.hash(input.password, 10);
-  const role: UserRole = input.role ?? "employee";
+  const role: UserRole = "employee";
 
   const { rows } = await query<UserRow>(
     `INSERT INTO users (name, email, password_hash, role)

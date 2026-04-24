@@ -60,18 +60,7 @@ export default function AppLayout() {
                 <span className="text-neutral-300">/</span>
                 <CurrentBreadcrumb />
               </div>
-              <div className="relative ml-auto w-full max-w-xs">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-neutral-400" />
-                <input
-                  type="search"
-                  placeholder="Rechercher..."
-                  className="input h-8 pl-8 text-xs"
-                  disabled
-                />
-                <span className="kbd pointer-events-none absolute right-2 top-1/2 -translate-y-1/2">
-                  ⌘K
-                </span>
-              </div>
+
             </div>
 
             <div className="flex items-center gap-2">
@@ -195,9 +184,16 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
 function CurrentBreadcrumb() {
   const { pathname } = useLocation();
   const segment = pathname.split("/")[1] || "dashboard";
+  const labels: Record<string, string> = {
+    dashboard: "Tableau de bord",
+    projects: "Projets",
+    team: "Équipe",
+    departments: "Départements",
+    analytics: "Analyses",
+  };
   return (
-    <span className="font-medium capitalize text-neutral-700">
-      {segment === "" ? "Tableau de bord" : segment}
+    <span className="font-medium text-neutral-700">
+      {labels[segment] || segment}
     </span>
   );
 }

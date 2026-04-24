@@ -11,7 +11,7 @@ const isManagedPostgres = /supabase\.co|neon\.tech|amazonaws\.com|render\.com/.t
 
 export const pool = new Pool({
   connectionString: env.DATABASE_URL,
-  max: 10,
+  max: process.env.VERCEL ? 1 : 10,
   idleTimeoutMillis: 30_000,
   ssl:
     env.NODE_ENV === "production" || isManagedPostgres

@@ -60,26 +60,37 @@ async function hydrateProject(projectId: string) {
 
 projectsRouter.get(
   "/",
-  asyncHandler(async (_req, res) => {
-    const { rows } = await query(
-      `SELECT p.id, p.name, p.description, p.status, p.owner_id,
-              p.start_date, p.due_date, p.created_at, p.updated_at,
-              o.name AS owner_name,
-              COALESCE(
-                (SELECT json_agg(json_build_object(
-                   'id', u.id, 'name', u.name, 'email', u.email, 'role', u.role
-                 ) ORDER BY u.name)
-                   FROM project_members pm
-                   JOIN users u ON u.id = pm.user_id
-                  WHERE pm.project_id = p.id),
-                '[]'::json
-              ) AS members,
-              (SELECT COUNT(*)::int FROM tasks t WHERE t.project_id = p.id) AS task_count,
-              (SELECT COUNT(*)::int FROM tasks t WHERE t.project_id = p.id AND t.status = 'done') AS tasks_done
-         FROM projects p
-         LEFT JOIN users o ON o.id = p.owner_id
-        ORDER BY p.created_at DESC`,
-    );
+  asyncHandler(async (req, res) => {
+    const caller = req.user!;
+    let queryStr = `
+      SELECT p.id, p.name, p.description, p.status, p.owner_id,
+             p.start_date, p.due_date, p.created_at, p.updated_at,
+             o.name AS owner_name,
+             COALESCE(
+               (SELECT json_agg(json_build_object(
+                  'id', u.id, 'name', u.name, 'email', u.email, 'role', u.role
+                ) ORDER BY u.name)
+                  FROM project_members pm
+                  JOIN users u ON u.id = pm.user_id
+                 WHERE pm.project_id = p.id),
+               '[]'::json
+             ) AS members,
+             COUNT(DISTINCT t.id)::int AS task_count,
+             COUNT(DISTINCT t.id) FILTER (WHERE t.status = 'done')::int AS tasks_done
+        FROM projects p
+        LEFT JOIN users o ON o.id = p.owner_id
+        LEFT JOIN tasks t ON t.project_id = p.id
+    `;
+    const params: any[] = [];
+    if (caller.role === "employee") {
+      queryStr += `
+        WHERE p.id IN (SELECT project_id FROM project_members WHERE user_id = $1)
+           OR p.owner_id = $1
+      `;
+      params.push(caller.id);
+    }
+    queryStr += ` GROUP BY p.id, o.name ORDER BY p.created_at DESC`;
+    const { rows } = await query(queryStr, params);
     res.json(rows);
   }),
 );
@@ -90,7 +101,16 @@ projectsRouter.get(
   asyncHandler(async (req, res) => {
     const { id } = req.params as z.infer<typeof idParam>;
     const project = await hydrateProject(id);
-    if (!project) throw notFound("Project not found");
+    if (!project) throw notFound("Projet introuvable");
+
+    const caller = req.user!;
+    if (caller.role === "employee" && project.owner_id !== caller.id) {
+      const isMember = project.members.some((m: any) => m.id === caller.id);
+      if (!isMember) {
+        throw notFound("Projet introuvable");
+      }
+    }
+
     res.json(project);
   }),
 );
@@ -154,28 +174,26 @@ projectsRouter.patch(
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
-      const result = await client.query(
-        `UPDATE projects
-            SET name        = COALESCE($2, name),
-                description = COALESCE($3, description),
-                status      = COALESCE($4, status),
-                owner_id    = COALESCE($5, owner_id),
-                start_date  = COALESCE($6, start_date),
-                due_date    = COALESCE($7, due_date),
-                updated_at  = NOW()
-          WHERE id = $1
-          RETURNING id`,
-        [
-          id,
-          body.name ?? null,
-          body.description ?? null,
-          body.status ?? null,
-          body.owner_id ?? null,
-          body.start_date ?? null,
-          body.due_date ?? null,
-        ],
-      );
-      if (result.rowCount === 0) throw notFound("Project not found");
+      
+      const updates: string[] = [];
+      const values: any[] = [id];
+      let paramIdx = 2;
+
+      if (body.name !== undefined) { updates.push(`name = $${paramIdx++}`); values.push(body.name); }
+      if (body.description !== undefined) { updates.push(`description = $${paramIdx++}`); values.push(body.description); }
+      if (body.status !== undefined) { updates.push(`status = $${paramIdx++}`); values.push(body.status); }
+      if (body.owner_id !== undefined) { updates.push(`owner_id = $${paramIdx++}`); values.push(body.owner_id); }
+      if (body.start_date !== undefined) { updates.push(`start_date = $${paramIdx++}`); values.push(body.start_date); }
+      if (body.due_date !== undefined) { updates.push(`due_date = $${paramIdx++}`); values.push(body.due_date); }
+
+      if (updates.length > 0) {
+        updates.push("updated_at = NOW()");
+        const result = await client.query(
+          `UPDATE projects SET ${updates.join(", ")} WHERE id = $1 RETURNING id`,
+          values
+        );
+        if (result.rowCount === 0) throw notFound("Projet introuvable");
+      }
 
       if (body.member_ids) {
         await client.query("DELETE FROM project_members WHERE project_id = $1", [id]);
@@ -193,6 +211,7 @@ projectsRouter.patch(
 
       await client.query("COMMIT");
       const project = await hydrateProject(id);
+      if (!project) throw notFound("Projet introuvable");
       res.json(project);
     } catch (err) {
       await client.query("ROLLBACK");
@@ -210,7 +229,7 @@ projectsRouter.delete(
   asyncHandler(async (req, res) => {
     const { id } = req.params as z.infer<typeof idParam>;
     const result = await query("DELETE FROM projects WHERE id = $1", [id]);
-    if (result.rowCount === 0) throw notFound("Project not found");
+    if (result.rowCount === 0) throw notFound("Projet introuvable");
     res.status(204).end();
   }),
 );
@@ -231,6 +250,19 @@ projectsRouter.get(
   validate(idParam, "params"),
   asyncHandler(async (req, res) => {
     const { id } = req.params as z.infer<typeof idParam>;
+    const caller = req.user!;
+    
+    if (caller.role === "employee") {
+      const { rows: membership } = await query(
+        `SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2
+         UNION SELECT 1 FROM projects WHERE id = $1 AND owner_id = $2`,
+        [id, caller.id]
+      );
+      if (membership.length === 0) {
+        return res.json([]);
+      }
+    }
+
     const { rows } = await query(
       `SELECT t.id, t.title, t.description, t.status, t.assignee_id,
               t.due_date, t.created_at, t.updated_at,
@@ -278,27 +310,33 @@ projectsRouter.patch(
   asyncHandler(async (req, res) => {
     const { id, taskId } = req.params as z.infer<typeof taskIdParam>;
     const body = req.body as z.infer<typeof taskUpdateSchema>;
+      ]
+    */
+
+    const updates: string[] = [];
+    const values: any[] = [id, taskId];
+    let paramIdx = 3;
+
+    if (body.title !== undefined) { updates.push(`title = $${paramIdx++}`); values.push(body.title); }
+    if (body.description !== undefined) { updates.push(`description = $${paramIdx++}`); values.push(body.description); }
+    if (body.status !== undefined) { updates.push(`status = $${paramIdx++}`); values.push(body.status); }
+    if (body.assignee_id !== undefined) { updates.push(`assignee_id = $${paramIdx++}`); values.push(body.assignee_id); }
+    if (body.due_date !== undefined) { updates.push(`due_date = $${paramIdx++}`); values.push(body.due_date); }
+
+    if (updates.length === 0) {
+      const { rows } = await query(`SELECT * FROM tasks WHERE id = $2 AND project_id = $1`, [id, taskId]);
+      if (rows.length === 0) throw notFound("Tâche introuvable");
+      return res.json(rows[0]);
+    }
+
+    updates.push("updated_at = NOW()");
+
     const { rows } = await query(
-      `UPDATE tasks
-          SET title       = COALESCE($3, title),
-              description = COALESCE($4, description),
-              status      = COALESCE($5, status),
-              assignee_id = COALESCE($6, assignee_id),
-              due_date    = COALESCE($7, due_date),
-              updated_at  = NOW()
-        WHERE id = $2 AND project_id = $1
-        RETURNING id, project_id, title, description, status, assignee_id, due_date, created_at, updated_at`,
-      [
-        id,
-        taskId,
-        body.title ?? null,
-        body.description ?? null,
-        body.status ?? null,
-        body.assignee_id ?? null,
-        body.due_date ?? null,
-      ],
+      `UPDATE tasks SET ${updates.join(", ")} WHERE id = $2 AND project_id = $1 RETURNING id, project_id, title, description, status, assignee_id, due_date, created_at, updated_at`,
+      values
     );
-    if (rows.length === 0) throw notFound("Task not found");
+
+    if (rows.length === 0) throw notFound("Tâche introuvable");
     res.json(rows[0]);
   }),
 );
@@ -312,7 +350,7 @@ projectsRouter.delete(
       taskId,
       id,
     ]);
-    if (result.rowCount === 0) throw notFound("Task not found");
+    if (result.rowCount === 0) throw notFound("Tâche introuvable");
     res.status(204).end();
   }),
 );
