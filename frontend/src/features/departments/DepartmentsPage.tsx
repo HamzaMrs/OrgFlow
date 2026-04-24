@@ -64,7 +64,7 @@ export default function DepartmentsPage() {
   }
 
   async function onDelete(id: string) {
-    if (!confirm("Delete this department?")) return;
+    if (!confirm("Supprimer ce département ?")) return;
     try {
       await api.delete(`/departments/${id}`);
       await refresh();
@@ -76,13 +76,13 @@ export default function DepartmentsPage() {
   return (
     <div>
       <PageHeader
-        title="Departments"
-        description="Organize your team structure and reporting lines."
+        title="Départements"
+        description="Organisez la structure de votre équipe et les lignes hiérarchiques."
         actions={
           canEdit ? (
             <button className="btn-primary" onClick={openCreate}>
               <Plus className="h-4 w-4" />
-              New department
+              Nouveau département
             </button>
           ) : undefined
         }
@@ -102,10 +102,10 @@ export default function DepartmentsPage() {
         <div className="surface flex flex-col items-center justify-center py-16 text-center">
           <Building2 className="h-6 w-6 text-neutral-300" />
           <h3 className="mt-3 text-sm font-medium text-neutral-900">
-            No departments yet
+            Aucun département
           </h3>
           <p className="mt-1 text-xs text-neutral-500">
-            Create one to group your team.
+            Créez-en un pour regrouper votre équipe.
           </p>
         </div>
       ) : (
@@ -125,7 +125,7 @@ export default function DepartmentsPage() {
                 {dept.name}
               </h3>
               <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-neutral-500">
-                {dept.description ?? "No description"}
+                {dept.description ?? "Aucune description"}
               </p>
               {canEdit && (
                 <div className="mt-4 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
@@ -134,7 +134,7 @@ export default function DepartmentsPage() {
                     onClick={() => openEdit(dept)}
                   >
                     <Pencil className="h-3 w-3" />
-                    Edit
+                    Modifier
                   </button>
                   {canDelete && (
                     <button
@@ -153,7 +153,7 @@ export default function DepartmentsPage() {
 
       <Modal
         open={modalOpen}
-        title={editingId ? "Edit department" : "New department"}
+        title={editingId ? "Modifier le département" : "Nouveau département"}
         onClose={() => setModalOpen(false)}
         footer={
           <>
@@ -163,7 +163,7 @@ export default function DepartmentsPage() {
               onClick={() => setModalOpen(false)}
               disabled={submitting}
             >
-              Cancel
+              Annuler
             </button>
             <button
               type="submit"
@@ -174,9 +174,9 @@ export default function DepartmentsPage() {
               {submitting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : editingId ? (
-                "Save"
+                "Enregistrer"
               ) : (
-                "Create"
+                "Créer"
               )}
             </button>
           </>
@@ -184,11 +184,11 @@ export default function DepartmentsPage() {
       >
         <form id="dept-form" onSubmit={onSubmit} className="space-y-4">
           <div>
-            <label className="label">Name</label>
+            <label className="label">Nom</label>
             <input
               className="input"
               required
-              placeholder="Engineering, Design, Operations..."
+              placeholder="Ingénierie, Design, Opérations..."
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
@@ -197,7 +197,7 @@ export default function DepartmentsPage() {
             <label className="label">Description</label>
             <textarea
               className="input min-h-[72px]"
-              placeholder="Optional — mission, scope, reporting line"
+              placeholder="Optionnel — mission, portée, hiérarchie"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />

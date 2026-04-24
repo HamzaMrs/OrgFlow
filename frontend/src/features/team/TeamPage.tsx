@@ -113,7 +113,7 @@ export default function TeamPage() {
   }
 
   async function onDelete(id: string) {
-    if (!confirm("Remove this user?")) return;
+    if (!confirm("Supprimer cet utilisateur ?")) return;
     try {
       await api.delete(`/users/${id}`);
       await refresh();
@@ -125,13 +125,13 @@ export default function TeamPage() {
   return (
     <div>
       <PageHeader
-        title="Team"
-        description={`${users.length} ${users.length === 1 ? "person" : "people"} across your organization.`}
+        title="Équipe"
+        description={`${users.length} ${users.length <= 1 ? "personne" : "personnes"} dans votre organisation.`}
         actions={
           canCreate ? (
             <button className="btn-primary" onClick={openCreate}>
               <Plus className="h-4 w-4" />
-              Add member
+              Ajouter un membre
             </button>
           ) : undefined
         }
@@ -153,10 +153,10 @@ export default function TeamPage() {
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b border-neutral-100 bg-neutral-50/50">
-                  <Th>Name</Th>
-                  <Th>Role</Th>
-                  <Th>Title</Th>
-                  <Th>Department</Th>
+                  <Th>Nom</Th>
+                  <Th>Rôle</Th>
+                  <Th>Titre</Th>
+                  <Th>Département</Th>
                   {canEdit && <Th className="w-px text-right">Actions</Th>}
                 </tr>
               </thead>
@@ -203,7 +203,7 @@ export default function TeamPage() {
                           <button
                             className="btn-ghost btn-xs"
                             onClick={() => openEdit(user)}
-                            aria-label="Edit"
+                            aria-label="Modifier"
                           >
                             <Pencil className="h-3 w-3" />
                           </button>
@@ -211,7 +211,7 @@ export default function TeamPage() {
                             <button
                               className="btn-ghost btn-xs text-red-600 hover:bg-red-50"
                               onClick={() => onDelete(user.id)}
-                              aria-label="Remove"
+                              aria-label="Supprimer"
                             >
                               <Trash2 className="h-3 w-3" />
                             </button>
@@ -229,11 +229,11 @@ export default function TeamPage() {
 
       <Modal
         open={modalOpen}
-        title={editingId ? "Edit member" : "Add team member"}
+        title={editingId ? "Modifier le membre" : "Ajouter un membre"}
         description={
           editingId
-            ? "Update this person's role and assignments."
-            : "Create a new account with role and department."
+            ? "Mettre à jour le rôle et les affectations de cette personne."
+            : "Créer un nouveau compte avec rôle et département."
         }
         onClose={() => setModalOpen(false)}
         footer={
@@ -244,7 +244,7 @@ export default function TeamPage() {
               onClick={() => setModalOpen(false)}
               disabled={submitting}
             >
-              Cancel
+              Annuler
             </button>
             <button
               type="submit"
@@ -255,9 +255,9 @@ export default function TeamPage() {
               {submitting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : editingId ? (
-                "Save changes"
+                "Enregistrer"
               ) : (
-                "Create member"
+                "Créer le membre"
               )}
             </button>
           </>
@@ -265,7 +265,7 @@ export default function TeamPage() {
       >
         <form id="user-form" onSubmit={onSubmit} className="space-y-4">
           <div>
-            <label className="label">Full name</label>
+            <label className="label">Nom complet</label>
             <input
               className="input"
               required
@@ -275,7 +275,7 @@ export default function TeamPage() {
           </div>
           {!editingId && (
             <div>
-              <label className="label">Email</label>
+              <label className="label">E-mail</label>
               <input
                 type="email"
                 className="input"
@@ -287,7 +287,7 @@ export default function TeamPage() {
           )}
           <div>
             <label className="label">
-              {editingId ? "New password (leave blank to keep current)" : "Password"}
+              {editingId ? "Nouveau mot de passe (laisser vide pour conserver l'actuel)" : "Mot de passe"}
             </label>
             <input
               type="password"
@@ -296,24 +296,24 @@ export default function TeamPage() {
               minLength={editingId ? 0 : 8}
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
-              placeholder={editingId ? "Unchanged" : "At least 8 characters"}
+              placeholder={editingId ? "Inchangé" : "Au moins 8 caractères"}
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="label">Role</label>
+              <label className="label">Rôle</label>
               <select
                 className="input"
                 value={form.role}
                 onChange={(e) => setForm({ ...form, role: e.target.value as UserRole })}
               >
-                <option value="employee">Employee</option>
+                <option value="employee">Employé</option>
                 <option value="manager">Manager</option>
-                <option value="admin">Admin</option>
+                <option value="admin">Administrateur</option>
               </select>
             </div>
             <div>
-              <label className="label">Job title</label>
+              <label className="label">Titre du poste</label>
               <input
                 className="input"
                 value={form.job_title}
@@ -322,13 +322,13 @@ export default function TeamPage() {
             </div>
           </div>
           <div>
-            <label className="label">Department</label>
+            <label className="label">Département</label>
             <select
               className="input"
               value={form.department_id}
               onChange={(e) => setForm({ ...form, department_id: e.target.value })}
             >
-              <option value="">Unassigned</option>
+              <option value="">Non assigné</option>
               {departments.map((d) => (
                 <option key={d.id} value={d.id}>
                   {d.name}

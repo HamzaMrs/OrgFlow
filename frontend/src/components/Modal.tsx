@@ -40,7 +40,7 @@ export default function Modal({ open, title, description, onClose, children, foo
           <button
             onClick={onClose}
             className="btn-ghost btn-xs -mr-1.5 -mt-1"
-            aria-label="Close"
+            aria-label="Fermer"
           >
             <X className="h-3.5 w-3.5" />
           </button>

@@ -14,9 +14,9 @@ const dotStyles: Record<ProjectStatus, string> = {
 };
 
 const labels: Record<ProjectStatus, string> = {
-  todo: "Todo",
-  in_progress: "In progress",
-  done: "Done",
+  todo: "À faire",
+  in_progress: "En cours",
+  done: "Terminé",
 };
 
 export default function StatusBadge({ status }: { status: ProjectStatus }) {

@@ -46,10 +46,10 @@ export default function LoginPage() {
         <div className="mb-10 text-center">
           <LogoIcon className="mx-auto mb-5 h-12 w-12" />
           <h1 className="text-2xl font-semibold tracking-tight text-neutral-900">
-            Welcome to <LogoText />
+            Bienvenue sur <LogoText />
           </h1>
           <p className="mt-1 text-sm text-neutral-500">
-            Sign in to continue to your workspace
+            Connectez-vous pour accéder à votre espace
           </p>
         </div>
 
@@ -64,7 +64,7 @@ export default function LoginPage() {
           )}
           <div>
             <label className="label" htmlFor="email">
-              Email
+              E-mail
             </label>
             <input
               id="email"
@@ -79,7 +79,7 @@ export default function LoginPage() {
           </div>
           <div>
             <label className="label" htmlFor="password">
-              Password
+              Mot de passe
             </label>
             <input
               id="password"
@@ -97,7 +97,7 @@ export default function LoginPage() {
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <>
-                Continue
+                Continuer
                 <ArrowRight className="h-4 w-4" />
               </>
             )}
@@ -106,7 +106,7 @@ export default function LoginPage() {
 
         <div className="mt-6 space-y-2 text-center">
           <p className="text-[0.6875rem] uppercase tracking-wider text-neutral-400">
-            Demo accounts
+            Comptes de démonstration
           </p>
           <div className="flex justify-center gap-1.5">
             {(["admin", "manager", "employee"] as const).map((role) => (
@@ -121,7 +121,7 @@ export default function LoginPage() {
             ))}
           </div>
           <p className="text-[0.6875rem] text-neutral-400">
-            Password: <span className="kbd">password</span>
+            Mot de passe : <span className="kbd">password</span>
           </p>
         </div>
       </div>

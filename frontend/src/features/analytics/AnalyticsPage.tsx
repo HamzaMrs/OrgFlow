@@ -56,14 +56,14 @@ export default function AnalyticsPage() {
   return (
     <div>
       <PageHeader
-        title="Analytics"
-        description="Project progress, workload distribution, and completion trends."
+        title="Analyses"
+        description="Avancement des projets, répartition de la charge de travail, et tendances."
       />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <ChartCard
-          title="Project distribution"
-          hint="By status"
+          title="Répartition des projets"
+          hint="Par statut"
         >
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
@@ -95,8 +95,8 @@ export default function AnalyticsPage() {
         </ChartCard>
 
         <ChartCard
-          title="Completion rate"
-          hint="Per project, expressed as percentage"
+          title="Taux d'achèvement"
+          hint="Par projet, en pourcentage"
         >
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
@@ -140,7 +140,7 @@ export default function AnalyticsPage() {
       </div>
 
       <div className="mt-4">
-        <ChartCard title="Workload by person" hint="Tasks per assignee, by status">
+        <ChartCard title="Charge de travail par personne" hint="Tâches par assigné, par statut">
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data.workload} margin={{ top: 10, right: 10, left: -20 }}>
@@ -173,9 +173,9 @@ export default function AnalyticsPage() {
                     <span className="text-xs text-neutral-600">{v}</span>
                   )}
                 />
-                <Bar dataKey="todo" stackId="a" fill="#d4d4d4" name="Todo" />
-                <Bar dataKey="in_progress" stackId="a" fill="#fbbf24" name="In progress" />
-                <Bar dataKey="done" stackId="a" fill="#10b981" name="Done" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="todo" stackId="a" fill="#d4d4d4" name="À faire" />
+                <Bar dataKey="in_progress" stackId="a" fill="#fbbf24" name="En cours" />
+                <Bar dataKey="done" stackId="a" fill="#10b981" name="Terminé" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

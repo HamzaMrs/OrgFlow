@@ -16,11 +16,11 @@ import { useAuth } from "../features/auth/AuthContext";
 import { LogoIcon, LogoText } from "./Logo";
 
 const navItems = [
-  { to: "/", label: "Dashboard", end: true, icon: LayoutDashboard },
-  { to: "/projects", label: "Projects", icon: FolderKanban },
-  { to: "/team", label: "Team", icon: Users },
-  { to: "/departments", label: "Departments", icon: Building2 },
-  { to: "/analytics", label: "Analytics", icon: BarChart3 },
+  { to: "/", label: "Tableau de bord", end: true, icon: LayoutDashboard },
+  { to: "/projects", label: "Projets", icon: FolderKanban },
+  { to: "/team", label: "Équipe", icon: Users },
+  { to: "/departments", label: "Départements", icon: Building2 },
+  { to: "/analytics", label: "Analyses", icon: BarChart3 },
 ];
 
 export default function AppLayout() {
@@ -49,7 +49,7 @@ export default function AppLayout() {
             <button
               className="btn-ghost btn-sm -ml-2 lg:hidden"
               onClick={() => setOpen(true)}
-              aria-label="Open menu"
+              aria-label="Ouvrir le menu"
             >
               <Menu className="h-4 w-4" />
             </button>
@@ -64,7 +64,7 @@ export default function AppLayout() {
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-neutral-400" />
                 <input
                   type="search"
-                  placeholder="Search..."
+                  placeholder="Rechercher..."
                   className="input h-8 pl-8 text-xs"
                   disabled
                 />
@@ -87,8 +87,8 @@ export default function AppLayout() {
               <button
                 onClick={logout}
                 className="btn-ghost btn-sm"
-                aria-label="Sign out"
-                title="Sign out"
+                aria-label="Se déconnecter"
+                title="Se déconnecter"
               >
                 <LogOut className="h-3.5 w-3.5" />
               </button>
@@ -101,7 +101,7 @@ export default function AppLayout() {
         </main>
 
         <footer className="border-t border-neutral-200 px-4 py-4 text-xs text-neutral-400 lg:px-8">
-          © 2026 OrgFlow · Built for clarity
+          © 2026 OrgFlow · Conçu pour la clarté
         </footer>
       </div>
     </div>
@@ -139,7 +139,7 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
           <button
             className="btn-ghost btn-sm lg:hidden"
             onClick={onClose}
-            aria-label="Close menu"
+            aria-label="Fermer le menu"
           >
             <X className="h-4 w-4" />
           </button>
@@ -147,7 +147,7 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
 
         <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
           <div className="px-2 pb-2 text-[0.6875rem] font-medium uppercase tracking-wider text-neutral-400">
-            Workspace
+            Espace de travail
           </div>
           {navItems.map(({ to, label, end, icon: Icon }) => (
             <NavLink
@@ -180,8 +180,8 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
             <button
               onClick={logout}
               className="btn-ghost btn-sm shrink-0"
-              aria-label="Sign out"
-              title="Sign out"
+              aria-label="Se déconnecter"
+              title="Se déconnecter"
             >
               <LogOut className="h-3.5 w-3.5" />
             </button>
@@ -197,7 +197,7 @@ function CurrentBreadcrumb() {
   const segment = pathname.split("/")[1] || "dashboard";
   return (
     <span className="font-medium capitalize text-neutral-700">
-      {segment === "" ? "Dashboard" : segment}
+      {segment === "" ? "Tableau de bord" : segment}
     </span>
   );
 }

@@ -76,24 +76,24 @@ export default function DashboardPage() {
   return (
     <div>
       <PageHeader
-        title="Dashboard"
-        description="A real-time snapshot of your organization."
+        title="Tableau de bord"
+        description="Un aperçu en temps réel de votre organisation."
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
-          label="Projects"
+          label="Projets"
           value={data.counters.total_projects}
           icon={FolderKanban}
         />
         <StatCard
-          label="Tasks"
+          label="Tâches"
           value={data.counters.total_tasks}
           icon={Activity}
         />
-        <StatCard label="People" value={data.counters.total_users} icon={Users} />
+        <StatCard label="Personnes" value={data.counters.total_users} icon={Users} />
         <StatCard
-          label="Completion"
+          label="Avancement"
           value={`${completionRate}%`}
           icon={CheckCircle2}
           trend={completionRate >= 50 ? "up" : undefined}
@@ -101,7 +101,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <ChartCard title="Project status" hint="Distribution across your portfolio">
+        <ChartCard title="Statut des projets" hint="Répartition sur l'ensemble de votre portfolio">
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -135,7 +135,7 @@ export default function DashboardPage() {
           </div>
         </ChartCard>
 
-        <ChartCard title="Task status" hint="Work across all projects">
+        <ChartCard title="Statut des tâches" hint="Travail sur tous les projets">
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={taskStatusData} margin={{ top: 10, right: 10, left: -20 }}>
@@ -174,7 +174,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <ChartCard title="Team workload" hint="Top 10 by task assignments">
+        <ChartCard title="Charge de l'équipe" hint="Top 10 par assignations de tâches">
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
@@ -205,19 +205,19 @@ export default function DashboardPage() {
                   width={90}
                 />
                 <Tooltip content={<MinimalTooltip />} cursor={{ fill: "#f9fafb" }} />
-                <Bar dataKey="todo" stackId="a" fill="#d4d4d4" name="Todo" radius={[4, 0, 0, 4]} />
-                <Bar dataKey="in_progress" stackId="a" fill="#fbbf24" name="In progress" />
-                <Bar dataKey="done" stackId="a" fill="#10b981" name="Done" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="todo" stackId="a" fill="#d4d4d4" name="À faire" radius={[4, 0, 0, 4]} />
+                <Bar dataKey="in_progress" stackId="a" fill="#fbbf24" name="En cours" />
+                <Bar dataKey="done" stackId="a" fill="#10b981" name="Terminé" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </ChartCard>
 
-        <ChartCard title="Completion rate" hint="Tasks done per project">
+        <ChartCard title="Taux d'achèvement" hint="Tâches terminées par projet">
           <div className="space-y-3.5">
             {data.completion.length === 0 && (
               <p className="py-12 text-center text-xs text-neutral-400">
-                No projects yet.
+                Aucun projet pour le moment.
               </p>
             )}
             {data.completion.map((project) => (

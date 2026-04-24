@@ -108,7 +108,7 @@ export default function ProjectsPage() {
   }
 
   async function onDelete(id: string) {
-    if (!confirm("Delete this project? This cannot be undone.")) return;
+    if (!confirm("Supprimer ce projet ? Cette action est irréversible.")) return;
     try {
       await api.delete(`/projects/${id}`);
       await refresh();
@@ -128,9 +128,9 @@ export default function ProjectsPage() {
 
   const columns = useMemo(
     () => [
-      { status: "todo" as const, label: "Todo" },
-      { status: "in_progress" as const, label: "In progress" },
-      { status: "done" as const, label: "Done" },
+      { status: "todo" as const, label: "À faire" },
+      { status: "in_progress" as const, label: "En cours" },
+      { status: "done" as const, label: "Terminé" },
     ],
     [],
   );
@@ -138,13 +138,13 @@ export default function ProjectsPage() {
   return (
     <div>
       <PageHeader
-        title="Projects"
-        description="Plan, assign, and track work across the organization."
+        title="Projets"
+        description="Planifiez, assignez et suivez le travail au sein de l'organisation."
         actions={
           canEdit ? (
             <button className="btn-primary" onClick={openCreate}>
               <Plus className="h-4 w-4" />
-              New project
+              Nouveau projet
             </button>
           ) : undefined
         }
@@ -180,7 +180,7 @@ export default function ProjectsPage() {
                 <div className="space-y-2">
                   {items.length === 0 && (
                     <p className="rounded-lg border border-dashed border-neutral-200 p-4 text-center text-[0.6875rem] text-neutral-400">
-                      No projects
+                      Aucun projet
                     </p>
                   )}
                   {items.map((project) => (
@@ -202,11 +202,11 @@ export default function ProjectsPage() {
 
       <Modal
         open={modalOpen}
-        title={editingId ? "Edit project" : "New project"}
+        title={editingId ? "Modifier le projet" : "Nouveau projet"}
         description={
           editingId
-            ? "Update project details and membership."
-            : "Create a project and assign team members."
+            ? "Mettre à jour les détails et les membres du projet."
+            : "Créer un projet et assigner des membres."
         }
         onClose={() => setModalOpen(false)}
         footer={
@@ -217,7 +217,7 @@ export default function ProjectsPage() {
               onClick={() => setModalOpen(false)}
               disabled={submitting}
             >
-              Cancel
+              Annuler
             </button>
             <button
               type="submit"
@@ -228,9 +228,9 @@ export default function ProjectsPage() {
               {submitting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : editingId ? (
-                "Save changes"
+                "Enregistrer"
               ) : (
-                "Create project"
+                "Créer le projet"
               )}
             </button>
           </>
@@ -238,11 +238,11 @@ export default function ProjectsPage() {
       >
         <form id="project-form" onSubmit={onSubmit} className="space-y-4">
           <div>
-            <label className="label">Name</label>
+            <label className="label">Nom</label>
             <input
               className="input"
               required
-              placeholder="Untitled project"
+              placeholder="Projet sans titre"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
             />
@@ -251,14 +251,14 @@ export default function ProjectsPage() {
             <label className="label">Description</label>
             <textarea
               className="input min-h-[72px]"
-              placeholder="Optional — context, goals, links"
+              placeholder="Optionnel — contexte, objectifs, liens"
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="label">Status</label>
+              <label className="label">Statut</label>
               <select
                 className="input"
                 value={form.status}
@@ -266,19 +266,19 @@ export default function ProjectsPage() {
                   setForm({ ...form, status: e.target.value as ProjectStatus })
                 }
               >
-                <option value="todo">Todo</option>
-                <option value="in_progress">In progress</option>
-                <option value="done">Done</option>
+                <option value="todo">À faire</option>
+                <option value="in_progress">En cours</option>
+                <option value="done">Terminé</option>
               </select>
             </div>
             <div>
-              <label className="label">Owner</label>
+              <label className="label">Propriétaire</label>
               <select
                 className="input"
                 value={form.owner_id}
                 onChange={(e) => setForm({ ...form, owner_id: e.target.value })}
               >
-                <option value="">Unassigned</option>
+                <option value="">Non assigné</option>
                 {users.map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.name}
@@ -289,7 +289,7 @@ export default function ProjectsPage() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="label">Start date</label>
+              <label className="label">Date de début</label>
               <input
                 type="date"
                 className="input"
@@ -298,7 +298,7 @@ export default function ProjectsPage() {
               />
             </div>
             <div>
-              <label className="label">Due date</label>
+              <label className="label">Date d'échéance</label>
               <input
                 type="date"
                 className="input"
@@ -308,7 +308,7 @@ export default function ProjectsPage() {
             </div>
           </div>
           <div>
-            <label className="label">Team members</label>
+            <label className="label">Membres de l'équipe</label>
             <div className="max-h-40 space-y-0.5 overflow-y-auto rounded-lg border border-neutral-200 p-1.5">
               {users.map((u) => {
                 const checked = form.member_ids.includes(u.id);
@@ -382,7 +382,7 @@ function ProjectCard({
             <button
               className="btn-ghost btn-xs -mr-1.5 opacity-0 transition-opacity group-hover:opacity-100"
               onClick={() => setMenuOpen((v) => !v)}
-              aria-label="More actions"
+              aria-label="Plus d'actions"
             >
               <MoreHorizontal className="h-3.5 w-3.5" />
             </button>
@@ -401,7 +401,7 @@ function ProjectCard({
                     }}
                   >
                     <Pencil className="h-3 w-3" />
-                    Edit
+                    Modifier
                   </button>
                   <button
                     className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-red-600 transition-colors hover:bg-red-50"
@@ -411,7 +411,7 @@ function ProjectCard({
                     }}
                   >
                     <Trash2 className="h-3 w-3" />
-                    Delete
+                    Supprimer
                   </button>
                 </div>
               </>
@@ -424,7 +424,7 @@ function ProjectCard({
         <div className="mt-3">
           <div className="mb-1 flex items-center justify-between text-[0.6875rem] text-neutral-400">
             <span>
-              {project.tasks_done}/{project.task_count} tasks
+              {project.tasks_done}/{project.task_count} tâches
             </span>
             <span className="tabular-nums">{progress}%</span>
           </div>
@@ -474,9 +474,9 @@ function ProjectCard({
             value={project.status}
             onChange={(e) => onStatusChange(e.target.value as ProjectStatus)}
           >
-            <option value="todo">Move to Todo</option>
-            <option value="in_progress">Move to In progress</option>
-            <option value="done">Move to Done</option>
+            <option value="todo">Déplacer vers À faire</option>
+            <option value="in_progress">Déplacer vers En cours</option>
+            <option value="done">Déplacer vers Terminé</option>
           </select>
         </div>
       )}
