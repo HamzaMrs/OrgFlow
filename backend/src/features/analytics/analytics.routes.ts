@@ -43,7 +43,7 @@ analyticsRouter.get(
             ORDER BY total_tasks DESC, u.name ASC
             LIMIT 10`,
         ),
-        query(
+        query<{ id: string; name: string; total: number; done: number }>(
           `SELECT p.id, p.name,
                   COUNT(t.id)::int AS total,
                   COUNT(t.id) FILTER (WHERE t.status = 'done')::int AS done
