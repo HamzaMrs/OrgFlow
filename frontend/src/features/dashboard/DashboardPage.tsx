@@ -47,29 +47,30 @@ export default function DashboardPage() {
     return (
       <div className="surface p-6 text-sm text-red-600">{error}</div>
     );
-  if (!data)
+  if (!data || !data.projectStatus || !data.taskStatus || !data.counters)
     return (
       <div className="flex items-center justify-center py-24 text-neutral-400">
         <Loader2 className="h-4 w-4 animate-spin" />
       </div>
     );
 
-  const projectStatusData = data.projectStatus.map((s) => ({
+  const projectStatusData = (data.projectStatus ?? []).map((s) => ({
     name: statusLabel(s.status),
     value: s.count,
     key: s.status,
   }));
 
-  const taskStatusData = data.taskStatus.map((s) => ({
+  const taskStatusData = (data.taskStatus ?? []).map((s) => ({
     name: statusLabel(s.status),
     value: s.count,
     key: s.status,
   }));
 
-  const tasksDone = data.taskStatus.find((s) => s.status === "done")?.count ?? 0;
+  const tasksDone = (data.taskStatus ?? []).find((s) => s.status === "done")?.count ?? 0;
+  const totalTasks = data.counters?.total_tasks ?? 0;
   const completionRate =
-    data.counters.total_tasks > 0
-      ? Math.round((tasksDone / data.counters.total_tasks) * 100)
+    totalTasks > 0
+      ? Math.round((tasksDone / totalTasks) * 100)
       : 0;
 
   return (

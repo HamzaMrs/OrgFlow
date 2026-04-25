@@ -20,6 +20,21 @@ export const app = express();
 // proxy's IP — otherwise rate-limiting buckets every request into the same key.
 app.set("trust proxy", 1);
 
+// Disable Express's automatic ETag generation. Without this Express can return
+// 304 Not Modified on JSON responses, and the browser then serves an empty body
+// from cache — which breaks the SPA when it tries to read fields like
+// `data.projectStatus.map(...)` on what it thinks is JSON but is actually empty.
+app.set("etag", false);
+
+// Force every API response to bypass intermediate caches. Vercel's edge can
+// otherwise cache 200 responses and surface them as 304s on the next request.
+app.use("/api", (_req, res, next) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  next();
+});
+
 app.use(cookieParser());
 
 // Helmet with stricter cross-origin defaults. We don't serve cross-origin assets

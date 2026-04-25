@@ -35,20 +35,20 @@ export default function AnalyticsPage() {
 
   if (error)
     return <div className="surface p-6 text-sm text-red-600">{error}</div>;
-  if (!data)
+  if (!data || !data.projectStatus || !data.completion || !data.workload)
     return (
       <div className="flex items-center justify-center py-24 text-neutral-400">
         <Loader2 className="h-4 w-4 animate-spin" />
       </div>
     );
 
-  const projectStatusData = data.projectStatus.map((s, i) => ({
+  const projectStatusData = (data.projectStatus ?? []).map((s, i) => ({
     name: statusLabel(s.status),
     value: s.count,
     fill: COLORS[i % COLORS.length],
   }));
 
-  const completionLine = data.completion.map((c) => ({
+  const completionLine = (data.completion ?? []).map((c) => ({
     name: c.name.length > 12 ? c.name.slice(0, 12) + "…" : c.name,
     rate: c.rate,
   }));
