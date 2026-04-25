@@ -1,9 +1,0 @@
-{
-  "name": "orgflow",
-  "version": "1.0.0",
-  "private": true,
-  "description": "OrgFlow root — Vercel monorepo entrypoint. Hosts the /api/ serverless function and the frontend build.",
-  "scripts": {
-    "build": "cd frontend && npm install && npm run build"
-  }
-}
