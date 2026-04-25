@@ -79,8 +79,6 @@ apiRouter.use("/projects", apiLimiter, projectsRouter);
 apiRouter.use("/analytics", apiLimiter, analyticsRouter);
 
 app.use("/api", apiRouter);
-// Vercel experimentalServices backend route prefix
-app.use("/_/backend/api", apiRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
