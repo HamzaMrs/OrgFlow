@@ -69,12 +69,18 @@ app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", service: "orgflow-api", time: new Date().toISOString() });
 });
 
-app.use("/api/auth", authRouter);
+const apiRouter = express.Router();
+
+apiRouter.use("/auth", authRouter);
 // Generic limiter on all authenticated APIs to prevent abuse / scraping.
-app.use("/api/users", apiLimiter, usersRouter);
-app.use("/api/departments", apiLimiter, departmentsRouter);
-app.use("/api/projects", apiLimiter, projectsRouter);
-app.use("/api/analytics", apiLimiter, analyticsRouter);
+apiRouter.use("/users", apiLimiter, usersRouter);
+apiRouter.use("/departments", apiLimiter, departmentsRouter);
+apiRouter.use("/projects", apiLimiter, projectsRouter);
+apiRouter.use("/analytics", apiLimiter, analyticsRouter);
+
+app.use("/api", apiRouter);
+// Vercel experimentalServices backend route prefix
+app.use("/_/backend/api", apiRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
