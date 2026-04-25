@@ -1,10 +1,12 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+import { env } from "../../config/env";
 import { query } from "../../db/pool";
 import { requireAuth, requireRole } from "../../middleware/auth";
 import { validate } from "../../middleware/validate";
 import { asyncHandler } from "../../utils/asyncHandler";
+import { strongPassword } from "../../utils/schemas";
 import { conflict, forbidden, notFound } from "../../utils/httpError";
 
 export const usersRouter = Router();
@@ -16,7 +18,7 @@ const roleEnum = z.enum(["admin", "manager", "employee"]);
 const createSchema = z.object({
   name: z.string().min(1).max(120),
   email: z.string().email(),
-  password: z.string().min(8).max(200),
+  password: strongPassword,
   role: roleEnum.default("employee"),
   job_title: z.string().max(120).optional().nullable(),
   department_id: z.string().uuid().optional().nullable(),
@@ -27,7 +29,7 @@ const updateSchema = z.object({
   role: roleEnum.optional(),
   job_title: z.string().max(120).nullable().optional(),
   department_id: z.string().uuid().nullable().optional(),
-  password: z.string().min(8).max(200).optional(),
+  password: strongPassword.optional(),
 });
 
 const idParam = z.object({ id: z.string().uuid() });
@@ -84,7 +86,7 @@ usersRouter.post(
     const exists = await query("SELECT 1 FROM users WHERE email = $1", [body.email]);
     if (exists.rowCount > 0) throw conflict("Adresse e-mail déjà enregistrée");
 
-    const password_hash = await bcrypt.hash(body.password, 10);
+    const password_hash = await bcrypt.hash(body.password, env.BCRYPT_COST);
     const { rows } = await query(
       `INSERT INTO users (name, email, password_hash, role, job_title, department_id)
        VALUES ($1, $2, $3, $4, $5, $6)
@@ -116,16 +118,21 @@ usersRouter.patch(
       if (body.role) {
         throw forbidden("Seuls les administrateurs peuvent modifier les rôles");
       }
-      if (body.password) {
+      if (body.password && caller.id !== id) {
         throw forbidden("Seuls les administrateurs peuvent modifier les mots de passe des autres");
       }
-      const { rows } = await query("SELECT role FROM users WHERE id = $1", [id]);
+      const { rows } = await query<{ role: string }>("SELECT role FROM users WHERE id = $1", [id]);
       if (rows.length > 0 && rows[0].role === "admin") {
         throw forbidden("Les managers ne peuvent pas modifier un administrateur");
       }
     }
 
-    const password_hash = body.password ? await bcrypt.hash(body.password, 10) : null;
+    // Prevent admins from demoting themselves and locking out their own access.
+    if (body.role && caller.id === id && body.role !== caller.role) {
+      throw forbidden("Vous ne pouvez pas modifier votre propre rôle");
+    }
+
+    const password_hash = body.password ? await bcrypt.hash(body.password, env.BCRYPT_COST) : null;
 
     const updates: string[] = [];
     const values: any[] = [id];

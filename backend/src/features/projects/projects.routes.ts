@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { pool, query } from "../../db/pool";
-import { requireAuth, requireRole } from "../../middleware/auth";
+import { requireAuth, requireMembership, requireRole } from "../../middleware/auth";
 import { validate } from "../../middleware/validate";
 import { asyncHandler } from "../../utils/asyncHandler";
 import { notFound } from "../../utils/httpError";
@@ -98,19 +98,11 @@ projectsRouter.get(
 projectsRouter.get(
   "/:id",
   validate(idParam, "params"),
+  requireMembership("id"),
   asyncHandler(async (req, res) => {
     const { id } = req.params as z.infer<typeof idParam>;
     const project = await hydrateProject(id);
     if (!project) throw notFound("Projet introuvable");
-
-    const caller = req.user!;
-    if (caller.role === "employee" && project.owner_id !== caller.id) {
-      const isMember = project.members.some((m: any) => m.id === caller.id);
-      if (!isMember) {
-        throw notFound("Projet introuvable");
-      }
-    }
-
     res.json(project);
   }),
 );
@@ -248,20 +240,9 @@ const taskUpdateSchema = taskCreateSchema.partial();
 projectsRouter.get(
   "/:id/tasks",
   validate(idParam, "params"),
+  requireMembership("id"),
   asyncHandler(async (req, res) => {
     const { id } = req.params as z.infer<typeof idParam>;
-    const caller = req.user!;
-    
-    if (caller.role === "employee") {
-      const { rows: membership } = await query(
-        `SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2
-         UNION SELECT 1 FROM projects WHERE id = $1 AND owner_id = $2`,
-        [id, caller.id]
-      );
-      if (membership.length === 0) {
-        return res.json([]);
-      }
-    }
 
     const { rows } = await query(
       `SELECT t.id, t.title, t.description, t.status, t.assignee_id,
@@ -280,6 +261,7 @@ projectsRouter.get(
 projectsRouter.post(
   "/:id/tasks",
   validate(idParam, "params"),
+  requireMembership("id"),
   validate(taskCreateSchema),
   asyncHandler(async (req, res) => {
     const { id } = req.params as z.infer<typeof idParam>;
@@ -306,12 +288,11 @@ const taskIdParam = z.object({ id: z.string().uuid(), taskId: z.string().uuid() 
 projectsRouter.patch(
   "/:id/tasks/:taskId",
   validate(taskIdParam, "params"),
+  requireMembership("id"),
   validate(taskUpdateSchema),
   asyncHandler(async (req, res) => {
     const { id, taskId } = req.params as z.infer<typeof taskIdParam>;
     const body = req.body as z.infer<typeof taskUpdateSchema>;
-      ]
-    */
 
     const updates: string[] = [];
     const values: any[] = [id, taskId];
@@ -344,6 +325,7 @@ projectsRouter.patch(
 projectsRouter.delete(
   "/:id/tasks/:taskId",
   validate(taskIdParam, "params"),
+  requireMembership("id"),
   asyncHandler(async (req, res) => {
     const { id, taskId } = req.params as z.infer<typeof taskIdParam>;
     const result = await query("DELETE FROM tasks WHERE id = $1 AND project_id = $2", [

@@ -44,7 +44,7 @@ export async function register(input: {
   const existing = await query("SELECT 1 FROM users WHERE email = $1", [input.email]);
   if (existing.rowCount > 0) throw conflict("Adresse e-mail déjà enregistrée");
 
-  const password_hash = await bcrypt.hash(input.password, 10);
+  const password_hash = await bcrypt.hash(input.password, env.BCRYPT_COST);
   const role: UserRole = "employee";
 
   const { rows } = await query<UserRow>(

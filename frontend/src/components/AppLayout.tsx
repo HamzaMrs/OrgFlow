@@ -8,7 +8,6 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
-  Search,
   Users,
   X,
 } from "lucide-react";

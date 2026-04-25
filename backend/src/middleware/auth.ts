@@ -1,7 +1,8 @@
 import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { env } from "../config/env";
-import { forbidden, unauthorized } from "../utils/httpError";
+import { query } from "../db/pool";
+import { forbidden, notFound, unauthorized } from "../utils/httpError";
 
 export type UserRole = "admin" | "manager" | "employee";
 
@@ -50,4 +51,36 @@ export const requireRole =
     if (!req.user) return next(unauthorized("Non autorisé"));
     if (!roles.includes(req.user.role)) return next(forbidden("Rôle insuffisant"));
     next();
+  };
+
+/**
+ * Restricts access to a project resource based on membership.
+ * - admins and managers: unrestricted
+ * - employees: must be the project owner OR a member of `project_members`
+ *
+ * Returns 404 (not 403) when the employee has no business knowing the project exists.
+ */
+export const requireMembership =
+  (paramName = "id") =>
+  async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!req.user) return next(unauthorized("Non autorisé"));
+      if (req.user.role === "admin" || req.user.role === "manager") return next();
+
+      const projectId = req.params[paramName];
+      if (!projectId) return next(notFound("Projet introuvable"));
+
+      const { rows } = await query<{ ok: number }>(
+        `SELECT 1 AS ok FROM projects WHERE id = $1 AND owner_id = $2
+         UNION
+         SELECT 1 AS ok FROM project_members WHERE project_id = $1 AND user_id = $2
+         LIMIT 1`,
+        [projectId, req.user.id],
+      );
+
+      if (rows.length === 0) return next(notFound("Projet introuvable"));
+      next();
+    } catch (err) {
+      next(err);
+    }
   };

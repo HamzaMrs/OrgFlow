@@ -70,6 +70,30 @@ CREATE TABLE IF NOT EXISTS tasks (
 CREATE INDEX IF NOT EXISTS idx_tasks_project ON tasks(project_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_assignee ON tasks(assignee_id);
 
+-- Auto-bump updated_at on every row update so route handlers don't have to
+-- remember to set `updated_at = NOW()` themselves.
+CREATE OR REPLACE FUNCTION bump_updated_at() RETURNS trigger AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DO $$ BEGIN
+  CREATE TRIGGER trg_users_bump_updated_at BEFORE UPDATE ON users
+    FOR EACH ROW EXECUTE FUNCTION bump_updated_at();
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TRIGGER trg_projects_bump_updated_at BEFORE UPDATE ON projects
+    FOR EACH ROW EXECUTE FUNCTION bump_updated_at();
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TRIGGER trg_tasks_bump_updated_at BEFORE UPDATE ON tasks
+    FOR EACH ROW EXECUTE FUNCTION bump_updated_at();
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
 -- Seed data
 INSERT INTO departments (id, name, description) VALUES
   ('11111111-1111-1111-1111-111111111111', 'Engineering', 'Product engineering team'),

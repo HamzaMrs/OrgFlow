@@ -3,7 +3,7 @@ import { ZodError } from "zod";
 import { HttpError } from "../utils/httpError";
 
 export function notFoundHandler(_req: Request, res: Response): void {
-  res.status(404).json({ error: "Route not found" });
+  res.status(404).json({ error: "Route introuvable" });
 }
 
 export function errorHandler(
@@ -14,7 +14,7 @@ export function errorHandler(
 ): void {
   if (err instanceof ZodError) {
     res.status(400).json({
-      error: "Validation failed",
+      error: "Données invalides",
       details: err.issues.map((i) => ({ path: i.path.join("."), message: i.message })),
     });
     return;
@@ -26,5 +26,5 @@ export function errorHandler(
   }
 
   console.error("[error]", err);
-  res.status(500).json({ error: "Internal server error" });
+  res.status(500).json({ error: "Erreur serveur" });
 }

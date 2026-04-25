@@ -4,7 +4,7 @@ import { query } from "../../db/pool";
 import { requireAuth, requireRole } from "../../middleware/auth";
 import { validate } from "../../middleware/validate";
 import { asyncHandler } from "../../utils/asyncHandler";
-import { notFound } from "../../utils/httpError";
+import { badRequest, notFound } from "../../utils/httpError";
 
 export const departmentsRouter = Router();
 
@@ -58,15 +58,28 @@ departmentsRouter.patch(
   asyncHandler(async (req, res) => {
     const { id } = req.params as z.infer<typeof idParam>;
     const body = req.body as z.infer<typeof updateSchema>;
+
+    const updates: string[] = [];
+    const values: unknown[] = [id];
+    let paramIdx = 2;
+
+    if (Object.prototype.hasOwnProperty.call(body, "name")) {
+      updates.push(`name = $${paramIdx++}`);
+      values.push(body.name);
+    }
+    if (Object.prototype.hasOwnProperty.call(body, "description")) {
+      updates.push(`description = $${paramIdx++}`);
+      values.push(body.description);
+    }
+
+    if (updates.length === 0) throw badRequest("Aucun champ à mettre à jour");
+
     const { rows } = await query(
-      `UPDATE departments
-          SET name = COALESCE($2, name),
-              description = COALESCE($3, description)
-        WHERE id = $1
-        RETURNING id, name, description, created_at`,
-      [id, body.name ?? null, body.description ?? null],
+      `UPDATE departments SET ${updates.join(", ")} WHERE id = $1
+       RETURNING id, name, description, created_at`,
+      values,
     );
-    if (rows.length === 0) throw notFound("Department not found");
+    if (rows.length === 0) throw notFound("Département introuvable");
     res.json(rows[0]);
   }),
 );
@@ -78,7 +91,7 @@ departmentsRouter.delete(
   asyncHandler(async (req, res) => {
     const { id } = req.params as z.infer<typeof idParam>;
     const result = await query("DELETE FROM departments WHERE id = $1", [id]);
-    if (result.rowCount === 0) throw notFound("Department not found");
+    if (result.rowCount === 0) throw notFound("Département introuvable");
     res.status(204).end();
   }),
 );
