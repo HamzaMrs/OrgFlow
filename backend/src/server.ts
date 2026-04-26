@@ -8,6 +8,7 @@ import { usersRouter } from "./features/users/users.routes";
 import { departmentsRouter } from "./features/departments/departments.routes";
 import { projectsRouter } from "./features/projects/projects.routes";
 import { analyticsRouter } from "./features/analytics/analytics.routes";
+import { invitationsRouter } from "./features/invitations/invitations.routes";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 import { apiLimiter } from "./middleware/rateLimit";
 import { pool } from "./db/pool";
@@ -72,6 +73,9 @@ app.get("/api/health", (_req, res) => {
 const apiRouter = express.Router();
 
 apiRouter.use("/auth", authRouter);
+// /invitations exposes a public read+accept path (the limiter is mounted
+// inside the router for the accept endpoint) and admin-only management.
+apiRouter.use("/invitations", invitationsRouter);
 // Generic limiter on all authenticated APIs to prevent abuse / scraping.
 apiRouter.use("/users", apiLimiter, usersRouter);
 apiRouter.use("/departments", apiLimiter, departmentsRouter);
