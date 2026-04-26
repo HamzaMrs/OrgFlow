@@ -1,14 +1,46 @@
+import nodemailer, { type Transporter } from "nodemailer";
 import { Resend } from "resend";
 import { env } from "../config/env";
 
-// Lazy-init the Resend client so a missing key doesn't crash module load.
-// When the key is absent we fall back to logging the email body to the console,
-// which keeps local dev usable and gives a clear breadcrumb in prod logs.
-let client: Resend | null = null;
-function getClient(): Resend | null {
-  if (!env.RESEND_API_KEY) return null;
-  if (!client) client = new Resend(env.RESEND_API_KEY);
-  return client;
+// ---------------------------------------------------------------------------
+// Transport selection — pick the first one that's configured. Lazy so missing
+// config doesn't crash module load; we re-decide per send so a config change
+// is picked up on next request without a restart (handy on Render).
+// ---------------------------------------------------------------------------
+type TransportKind = "smtp" | "resend" | "log";
+
+let smtpTransporter: Transporter | null = null;
+let resendClient: Resend | null = null;
+
+function pickTransport(): TransportKind {
+  if (env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASSWORD) return "smtp";
+  if (env.RESEND_API_KEY) return "resend";
+  return "log";
+}
+
+function fromAddress(): string {
+  if (env.EMAIL_FROM) return env.EMAIL_FROM;
+  // Sensible defaults so the From header is never empty.
+  if (env.SMTP_USER) return `OrgFlow <${env.SMTP_USER}>`;
+  return "OrgFlow <onboarding@resend.dev>";
+}
+
+function getSmtpTransporter(): Transporter {
+  if (!smtpTransporter) {
+    smtpTransporter = nodemailer.createTransport({
+      host: env.SMTP_HOST,
+      port: env.SMTP_PORT,
+      // STARTTLS upgrade on 587 (Gmail default), implicit TLS on 465.
+      secure: env.SMTP_PORT === 465,
+      auth: { user: env.SMTP_USER, pass: env.SMTP_PASSWORD },
+    });
+  }
+  return smtpTransporter;
+}
+
+function getResendClient(): Resend {
+  if (!resendClient) resendClient = new Resend(env.RESEND_API_KEY);
+  return resendClient;
 }
 
 interface SendArgs {
@@ -19,18 +51,33 @@ interface SendArgs {
 }
 
 async function send({ to, subject, html, text }: SendArgs): Promise<void> {
-  const resend = getClient();
-  if (!resend) {
+  const transport = pickTransport();
+  const from = fromAddress();
+
+  if (transport === "log") {
     console.warn(
-      `[mail] RESEND_API_KEY not set — would send to ${to}: ${subject}`,
+      `[mail] no transport configured — would send to ${to}: ${subject}`,
     );
     console.warn(`[mail] body:\n${text}`);
     return;
   }
 
   try {
-    const result = await resend.emails.send({
-      from: env.EMAIL_FROM,
+    if (transport === "smtp") {
+      const result = await getSmtpTransporter().sendMail({
+        from,
+        to,
+        subject,
+        html,
+        text,
+      });
+      console.log(`[mail] smtp sent ${result.messageId} to ${to}: ${subject}`);
+      return;
+    }
+
+    // resend
+    const result = await getResendClient().emails.send({
+      from,
       to,
       subject,
       html,
@@ -40,7 +87,7 @@ async function send({ to, subject, html, text }: SendArgs): Promise<void> {
       console.error("[mail] resend error", result.error);
       return;
     }
-    console.log(`[mail] sent ${result.data?.id} to ${to}: ${subject}`);
+    console.log(`[mail] resend sent ${result.data?.id} to ${to}: ${subject}`);
   } catch (err) {
     // Never let mail failures bubble up and break the user-visible request.
     // Verification / reset can be retried from the UI.
