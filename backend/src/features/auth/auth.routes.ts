@@ -20,6 +20,16 @@ const registerSchema = z.object({
   password: strongPassword,
 });
 
+// In production the frontend (Vercel) and the backend (Render) live on
+// different eTLD+1s, so cookies have to be set with SameSite=None+Secure to be
+// sent on cross-site XHR. In development we keep SameSite=lax over plain http.
+const isProd = process.env.NODE_ENV === "production";
+const cookieOpts = {
+  httpOnly: true,
+  secure: isProd,
+  sameSite: isProd ? ("none" as const) : ("lax" as const),
+};
+
 authRouter.post(
   "/login",
   authLimiter,
@@ -28,9 +38,7 @@ authRouter.post(
     const { email, password } = req.body as z.infer<typeof loginSchema>;
     const result = await login(email, password);
     res.cookie("token", result.token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      ...cookieOpts,
       maxAge: 60 * 60 * 1000, // 1 hour
     });
     res.json({ user: result.user });
@@ -50,12 +58,8 @@ authRouter.post(
 
 authRouter.post(
   "/logout",
-  (req, res) => {
-    res.clearCookie("token", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-    });
+  (_req, res) => {
+    res.clearCookie("token", cookieOpts);
     res.json({ message: "Déconnecté" });
   }
 );
