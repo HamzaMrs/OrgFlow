@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { useAuth } from "../features/auth/AuthContext";
+import EmailVerificationBanner from "../features/auth/EmailVerificationBanner";
 import { LogoIcon, LogoText } from "./Logo";
 
 const navItems = [
@@ -43,6 +44,7 @@ export default function AppLayout() {
       <Sidebar open={open} onClose={() => setOpen(false)} />
 
       <div className="flex min-w-0 flex-1 flex-col">
+        <EmailVerificationBanner />
         <header className="glass sticky top-0 z-30">
           <div className="flex h-14 items-center gap-3 px-4 lg:px-8">
             <button

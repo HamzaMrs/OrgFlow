@@ -7,6 +7,27 @@ export interface AuthUser {
   name: string;
   email: string;
   role: UserRole;
+  email_verified: boolean;
+}
+
+export interface InvitationDetails {
+  email: string;
+  role: UserRole;
+  department_name: string | null;
+  inviter_name: string | null;
+}
+
+export interface Invitation {
+  id: string;
+  email: string;
+  role: UserRole;
+  department_id: string | null;
+  department_name: string | null;
+  invited_by_name: string | null;
+  expires_at: string;
+  accepted_at: string | null;
+  created_at: string;
+  status: "pending" | "accepted" | "expired";
 }
 
 export interface Department {

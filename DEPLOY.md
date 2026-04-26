@@ -1,7 +1,6 @@
 # Déployer OrgFlow
 
-Architecture : **frontend sur Vercel**, **backend sur Render**, **DB sur Supabase**.
-C'est le pattern standard et fiable pour un Node + React. Vercel est top pour les SPA mais leurs fonctions serverless en monorepo TypeScript sont galère — d'où le découplage.
+Architecture : **frontend sur Vercel**, **backend sur Render**, **DB sur Supabase**, **emails via Resend**.
 
 ---
 
@@ -10,52 +9,72 @@ C'est le pattern standard et fiable pour un Node + React. Vercel est top pour le
 1. [supabase.com](https://supabase.com) → **New project** → noter le mot de passe DB
 2. Attendre ~2 min que le projet soit prêt
 3. **SQL Editor** → **New query** → coller `backend/src/db/init.sql` → **Run**
-4. **Project Settings** → **Database** → **Connection string** → **Transaction pooler** (port `6543`) → copier l'URI, remplacer `[YOUR-PASSWORD]`
+4. **SQL Editor** → **New query** → coller `backend/src/db/migrations/001_email_auth.sql` → **Run**
+   (ajoute les colonnes/tables pour la vérification d'email, le reset de mot de passe et les invitations)
+5. **Project Settings** → **Database** → **Connection string** → **Transaction pooler** (port `6543`)
 
 Format final :
 ```
 postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres
 ```
 
-Comptes seed disponibles après le SQL :
-
-| Email | Mot de passe | Rôle |
-|---|---|---|
-| `admin@orgflow.local` | `password` | admin |
-| `manager@orgflow.local` | `password` | manager |
-| `employee@orgflow.local` | `password` | employee |
+⚠️ Échapper `@`, `#`, `:`, `/`, `?`, `&`, `+`, espace dans le password (URL-encoding).
 
 ---
 
-## 2. Backend sur Render
+## 2. Resend (envoi d'emails)
+
+1. [resend.com](https://resend.com) → Sign up
+2. **API Keys** → **Create API Key** → name `orgflow-prod`, full access → copier la clé `re_...`
+3. **Mode test** : Resend autorise par défaut l'envoi **uniquement à l'email de ton compte** depuis `onboarding@resend.dev`. Suffit pour valider le flow.
+4. **Mode prod** : pour envoyer à n'importe qui, ajouter un domaine vérifié dans **Domains** (3 enregistrements DNS), puis utiliser `noreply@tondomaine.com` comme `EMAIL_FROM`.
+
+---
+
+## 3. Backend sur Render
 
 1. [render.com](https://render.com) → **New** → **Web Service** → connecter le repo GitHub
-2. Render détecte automatiquement `render.yaml` à la racine — accepte la config proposée
-3. Dans les **Environment Variables** du service, ajouter (les 3 variables marquées `sync: false`) :
-   - `DATABASE_URL` = la connection string Supabase de l'étape 1
-   - `JWT_SECRET` = générer avec `openssl rand -hex 32` (≥32 caractères, sinon le service refuse de démarrer)
-   - `CORS_ORIGIN` = `https://<ton-app>.vercel.app` (l'URL Vercel du frontend, mise à jour à l'étape 3)
+2. Render lit `render.yaml` automatiquement
+3. **Environment Variables** :
+
+| Nom | Valeur |
+|---|---|
+| `DATABASE_URL` | La connection string Supabase de l'étape 1 |
+| `JWT_SECRET` | `openssl rand -hex 32` (≥32 caractères) |
+| `CORS_ORIGIN` | `https://<ton-app>.vercel.app` |
+| `RESEND_API_KEY` | La clé `re_...` de l'étape 2 |
+| `EMAIL_FROM` | `OrgFlow <onboarding@resend.dev>` (test) ou `OrgFlow <noreply@tondomaine.com>` (prod) |
+| `APP_URL` | `https://<ton-app>.vercel.app` (utilisé dans les liens des emails) |
+
 4. **Create Web Service** → attendre le build (~3 min)
-5. Récupérer l'URL publique : `https://orgflow-api-XXXX.onrender.com`
+5. Récupérer l'URL : `https://orgflow-api-XXXX.onrender.com`
 6. Tester : `https://orgflow-api-XXXX.onrender.com/api/health` → `{"status":"ok",...}`
 
-⚠️ Le plan Free met le service en veille après 15 min d'inactivité — la première requête après veille prend ~30s. C'est pas grave en démo, à upgrader pour de la prod.
-
 ---
 
-## 3. Frontend sur Vercel
+## 4. Frontend sur Vercel
 
 1. [vercel.com](https://vercel.com) → **Add New** → **Project** → importer le repo
-2. Vercel lit `vercel.json` à la racine et build le frontend automatiquement
-3. **Settings → Environment Variables** → ajouter :
-   - `VITE_API_URL` = `https://orgflow-api-XXXX.onrender.com/api` (l'URL Render + `/api`)
-4. **Redeploy** (sinon la nouvelle env var n'est pas prise)
-5. Récupérer l'URL Vercel : `https://<ton-app>.vercel.app`
-6. **Retourner sur Render** et mettre à jour `CORS_ORIGIN` avec cette URL → redeploy automatique
+2. **Settings → Environment Variables** :
+   - `VITE_API_URL` = `https://orgflow-api-XXXX.onrender.com/api`
+3. **Deployments** → Redeploy (les `VITE_*` sont incorporées au build, donc obligatoire après changement)
+4. Récupérer l'URL Vercel et la mettre dans `CORS_ORIGIN` + `APP_URL` côté Render → Render redeploy auto
 
 ---
 
-## 4. Vérifier
+## 5. Premier admin
+
+Le code détecte automatiquement quand la table `users` est vide : **le premier compte créé via `/register` devient admin**. Donc :
+
+1. Va sur `https://<ton-app>.vercel.app/register`
+2. Crée ton compte avec ton vrai email
+3. Tu es admin direct
+4. Vérifie ton email (lien dans la boîte de réception)
+5. Va dans **Équipe** → **Inviter** pour ajouter d'autres membres
+
+---
+
+## 6. Vérifier
 
 ```bash
 # backend
@@ -63,20 +82,22 @@ curl https://orgflow-api-XXXX.onrender.com/api/health
 
 # frontend
 open https://<ton-app>.vercel.app
-# Login : admin@orgflow.local / password
 ```
 
 ---
 
 ## Troubleshooting
 
-| Symptôme | Cause probable | Fix |
+| Symptôme | Cause | Fix |
 |---|---|---|
-| Backend `JWT_SECRET must be at least 32 characters` au démarrage | Secret trop court | `openssl rand -hex 32` puis update dans Render |
-| Backend `Missing required env var: DATABASE_URL` | Variable pas dans Render | Re-vérifier, redeploy |
-| Frontend page blanche, console : `CORS blocked` | `CORS_ORIGIN` ne contient pas l'URL Vercel | Ajouter dans Render → redeploy |
-| Frontend page blanche, Network montre 401 | Cookies `SameSite=lax` cross-domain | Verifier que les 2 URLs sont en HTTPS (c'est le cas par défaut) |
-| Frontend appelle `localhost:4000` en prod | `VITE_API_URL` pas définie sur Vercel | Ajouter et **redeploy** (Vercel build incorpore les env vars VITE_* au build) |
+| Backend `JWT_SECRET must be at least 32 characters` | Secret trop court | `openssl rand -hex 32` puis update dans Render |
+| Backend `Missing required env var: DATABASE_URL` | Variable absente | Re-vérifier, redeploy |
+| Backend `TypeError: Invalid URL` au démarrage | password contient `@`, `#`, `:` non encodé | URL-encoder ou regénérer un password sans caractères spéciaux |
+| Frontend page blanche, console : `CORS blocked` | `CORS_ORIGIN` Render ne match pas | Mettre l'URL Vercel exacte → redeploy |
+| Frontend appelle `localhost:4000` en prod | `VITE_API_URL` absent | Ajouter sur Vercel + **redeploy** |
+| Email reçu mais le lien pointe vers localhost | `APP_URL` non défini sur Render | Mettre l'URL Vercel + redeploy |
+| Email pas reçu | Mode test Resend → uniquement ton email Resend | Ajouter un domaine vérifié dans Resend |
+| Login OK mais 401 sur tout le reste (Safari/Brave) | Cookies cross-domain bloqués | Déjà géré : Bearer token via Authorization header |
 | 1ère requête après inactivité prend 30s | Plan Free Render qui se réveille | Normal en Free, upgrade pour éviter |
 
 ---
@@ -84,5 +105,5 @@ open https://<ton-app>.vercel.app
 ## Re-déployer
 
 - **Backend** : push sur `main` → Render redeploy auto
-- **Frontend** : push sur `main` → Vercel redeploy auto
-- **Schéma DB modifié** : refaire l'étape 1.3 (le SQL est idempotent)
+- **Frontend** : push sur `main` → Vercel redeploy auto  
+- **Schéma DB modifié** : ajouter une nouvelle migration `0XX_xxx.sql` dans `backend/src/db/migrations/` et la lancer dans le SQL Editor Supabase

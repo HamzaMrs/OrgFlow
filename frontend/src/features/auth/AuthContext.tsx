@@ -7,7 +7,9 @@ interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
+  register: (name: string, email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  refresh: () => Promise<void>;
   hasRole: (...roles: UserRole[]) => boolean;
 }
 
@@ -17,10 +19,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
+  const refresh = useCallback(async () => {
+    if (!getStoredToken()) {
+      setUser(null);
+      return;
+    }
+    try {
+      const res = await api.get<AuthUser>("/auth/me");
+      setUser(res.data);
+    } catch {
+      setUser(null);
+    }
+  }, []);
+
   useEffect(() => {
     // Skip the /me probe entirely if we have no token — saves a 401 round-trip
-    // and keeps the login screen quiet. Cookies-only auth would still want this
-    // call, but we no longer rely on cookies cross-domain.
+    // and keeps the login screen quiet.
     if (!getStoredToken()) {
       setLoading(false);
       return;
@@ -51,11 +65,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(res.data.user);
   }, []);
 
+  const register = useCallback(async (name: string, email: string, password: string) => {
+    const res = await api.post<{ user: AuthUser; token: string }>("/auth/register", {
+      name,
+      email,
+      password,
+    });
+    setStoredToken(res.data.token);
+    setUser(res.data.user);
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       await api.post("/auth/logout");
     } catch {
-      // Ignore errors on logout
+      // Ignore — we still want to clear the local state.
     } finally {
       setStoredToken(null);
       setUser(null);
@@ -68,8 +92,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ user, loading, login, logout, hasRole }),
-    [user, loading, login, logout, hasRole],
+    () => ({ user, loading, login, register, logout, refresh, hasRole }),
+    [user, loading, login, register, logout, refresh, hasRole],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

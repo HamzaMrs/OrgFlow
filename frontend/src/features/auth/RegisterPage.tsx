@@ -1,30 +1,35 @@
 import { FormEvent, useState } from "react";
-import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { useAuth } from "./AuthContext";
 import { apiError } from "../../api/client";
 import { LogoIcon, LogoText } from "../../components/Logo";
+import { validatePassword } from "../../utils/password";
 
-export default function LoginPage() {
-  const { user, login, loading } = useAuth();
+export default function RegisterPage() {
+  const { user, register, loading } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  if (!loading && user) {
-    const redirectTo = (location.state as { from?: string } | null)?.from ?? "/";
-    return <Navigate to={redirectTo} replace />;
-  }
+  if (!loading && user) return <Navigate to="/" replace />;
+
+  const passwordHint = password.length > 0 ? validatePassword(password) : null;
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+    const pwdError = validatePassword(password);
+    if (pwdError) {
+      setError(pwdError);
+      return;
+    }
     setSubmitting(true);
     try {
-      await login(email, password);
+      await register(name, email, password);
       navigate("/", { replace: true });
     } catch (err) {
       setError(apiError(err));
@@ -41,10 +46,10 @@ export default function LoginPage() {
         <div className="mb-10 text-center">
           <LogoIcon className="mx-auto mb-5 h-12 w-12" />
           <h1 className="text-2xl font-semibold tracking-tight text-neutral-900">
-            Bienvenue sur <LogoText />
+            Créer un compte sur <LogoText />
           </h1>
           <p className="mt-1 text-sm text-neutral-500">
-            Connectez-vous pour accéder à votre espace
+            Quelques secondes et vous y êtes
           </p>
         </div>
 
@@ -57,6 +62,19 @@ export default function LoginPage() {
               {error}
             </div>
           )}
+          <div>
+            <label className="label" htmlFor="name">Nom complet</label>
+            <input
+              id="name"
+              type="text"
+              autoComplete="name"
+              required
+              className="input"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Marie Dupont"
+            />
+          </div>
           <div>
             <label className="label" htmlFor="email">E-mail</label>
             <input
@@ -71,32 +89,29 @@ export default function LoginPage() {
             />
           </div>
           <div>
-            <div className="flex items-baseline justify-between">
-              <label className="label" htmlFor="password">Mot de passe</label>
-              <Link
-                to="/forgot-password"
-                className="text-[0.6875rem] text-neutral-500 underline-offset-2 hover:text-neutral-900 hover:underline"
-              >
-                Oublié ?
-              </Link>
-            </div>
+            <label className="label" htmlFor="password">Mot de passe</label>
             <input
               id="password"
               type="password"
-              autoComplete="current-password"
+              autoComplete="new-password"
               required
               className="input"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
             />
+            <p className="mt-1 text-[0.6875rem] text-neutral-400">
+              {passwordHint
+                ? <span className="text-amber-600">{passwordHint}</span>
+                : "8 caractères minimum, une majuscule, une minuscule, un chiffre"}
+            </p>
           </div>
           <button type="submit" className="btn-primary w-full" disabled={submitting}>
             {submitting ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <>
-                Continuer
+                Créer mon compte
                 <ArrowRight className="h-4 w-4" />
               </>
             )}
@@ -104,9 +119,9 @@ export default function LoginPage() {
         </form>
 
         <p className="mt-6 text-center text-sm text-neutral-500">
-          Pas encore de compte ?{" "}
-          <Link to="/register" className="font-medium text-neutral-900 underline-offset-2 hover:underline">
-            Créer un compte
+          Déjà un compte ?{" "}
+          <Link to="/login" className="font-medium text-neutral-900 underline-offset-2 hover:underline">
+            Se connecter
           </Link>
         </p>
       </div>
