@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { api } from "../../api/client";
+import { api, getStoredToken, setStoredToken } from "../../api/client";
 import type { AuthUser, UserRole } from "../../types/models";
 
 interface AuthContextValue {
@@ -18,6 +18,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
+    // Skip the /me probe entirely if we have no token — saves a 401 round-trip
+    // and keeps the login screen quiet. Cookies-only auth would still want this
+    // call, but we no longer rely on cookies cross-domain.
+    if (!getStoredToken()) {
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     api
       .get<AuthUser>("/auth/me")
@@ -36,10 +43,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    const res = await api.post<{ user: AuthUser }>("/auth/login", {
+    const res = await api.post<{ user: AuthUser; token: string }>("/auth/login", {
       email,
       password,
     });
+    setStoredToken(res.data.token);
     setUser(res.data.user);
   }, []);
 
@@ -49,6 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // Ignore errors on logout
     } finally {
+      setStoredToken(null);
       setUser(null);
     }
   }, []);

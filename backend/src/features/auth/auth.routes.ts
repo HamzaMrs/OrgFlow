@@ -37,11 +37,15 @@ authRouter.post(
   asyncHandler(async (req, res) => {
     const { email, password } = req.body as z.infer<typeof loginSchema>;
     const result = await login(email, password);
+    // Set the cookie for browsers that allow cross-site cookies, AND return the
+    // token in the body so the SPA can fall back to a Bearer header (Safari and
+    // Chrome with strict privacy block third-party cookies even with
+    // SameSite=None+Secure).
     res.cookie("token", result.token, {
       ...cookieOpts,
       maxAge: 60 * 60 * 1000, // 1 hour
     });
-    res.json({ user: result.user });
+    res.json({ user: result.user, token: result.token });
   }),
 );
 
