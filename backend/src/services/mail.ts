@@ -1,6 +1,12 @@
+import dns from "node:dns";
 import nodemailer, { type Transporter } from "nodemailer";
 import { Resend } from "resend";
 import { env } from "../config/env";
+
+// Render containers don't have IPv6 connectivity, but Node defaults to whichever
+// address comes back first from DNS — often IPv6 for Gmail, which then ENETUNREACHs.
+// Force IPv4-first resolution process-wide so SMTP (and any other outbound) works.
+dns.setDefaultResultOrder("ipv4first");
 
 // ---------------------------------------------------------------------------
 // Transport selection — pick the first one that's configured. Lazy so missing
@@ -33,9 +39,6 @@ function getSmtpTransporter(): Transporter {
       // STARTTLS upgrade on 587 (Gmail default), implicit TLS on 465.
       secure: env.SMTP_PORT === 465,
       auth: { user: env.SMTP_USER, pass: env.SMTP_PASSWORD },
-      // Render containers don't have IPv6 connectivity but Gmail's MX records
-      // resolve to IPv6 by default → ENETUNREACH. Force IPv4.
-      family: 4,
     });
   }
   return smtpTransporter;
