@@ -33,6 +33,9 @@ function getSmtpTransporter(): Transporter {
       // STARTTLS upgrade on 587 (Gmail default), implicit TLS on 465.
       secure: env.SMTP_PORT === 465,
       auth: { user: env.SMTP_USER, pass: env.SMTP_PASSWORD },
+      // Render containers don't have IPv6 connectivity but Gmail's MX records
+      // resolve to IPv6 by default → ENETUNREACH. Force IPv4.
+      family: 4,
     });
   }
   return smtpTransporter;
