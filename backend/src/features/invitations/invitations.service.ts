@@ -30,12 +30,19 @@ export interface InvitationView {
   accepted_at: string | null;
   created_at: string;
   status: "pending" | "accepted" | "expired";
+  // Full accept URL — included so admins can copy & share manually when email
+  // delivery isn't available (Render free blocks SMTP outbound).
+  accept_url: string;
 }
 
 const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 function generateToken(): string {
   return crypto.randomBytes(32).toString("hex");
+}
+
+function buildAcceptUrl(token: string): string {
+  return `${env.APP_URL.replace(/\/$/, "")}/accept-invitation/${token}`;
 }
 
 function status(row: { accepted_at: Date | null; expires_at: Date }): InvitationView["status"] {
@@ -68,6 +75,7 @@ export async function listInvitations(): Promise<InvitationView[]> {
     accepted_at: r.accepted_at ? new Date(r.accepted_at).toISOString() : null,
     created_at: new Date(r.created_at).toISOString(),
     status: status(r),
+    accept_url: buildAcceptUrl(r.token),
   }));
 }
 
@@ -122,6 +130,7 @@ export async function createInvitation(input: {
     accepted_at: null,
     created_at: new Date(row.created_at).toISOString(),
     status: "pending",
+    accept_url: buildAcceptUrl(token),
   };
 }
 

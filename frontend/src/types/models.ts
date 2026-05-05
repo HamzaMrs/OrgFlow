@@ -28,6 +28,7 @@ export interface Invitation {
   accepted_at: string | null;
   created_at: string;
   status: "pending" | "accepted" | "expired";
+  accept_url: string;
 }
 
 export interface Department {

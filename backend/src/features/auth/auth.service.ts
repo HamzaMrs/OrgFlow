@@ -88,13 +88,20 @@ export async function register(input: {
   const isFirstUser = countRows[0]?.count === "0";
   const role: UserRole = isFirstUser ? "admin" : "employee";
 
+  // Auto-verify on signup. The original design sent a verification email,
+  // but our deployment target (Render free) blocks SMTP outbound entirely
+  // and we don't run a transactional email service. Since the user is on
+  // the device that just typed the password, "verifying" the email roundtrip
+  // adds no real security here — admins can also reset passwords from the
+  // Team page if a typo happens. We still issue a token so a future "verify
+  // your address" flow can be re-enabled by flipping email_verified to FALSE.
   const verification_token = generateToken();
   const verification_token_expires = new Date(Date.now() + DAY);
 
   const { rows } = await query<UserRow>(
     `INSERT INTO users
        (name, email, password_hash, role, email_verified, verification_token, verification_token_expires)
-     VALUES ($1, $2, $3, $4, FALSE, $5, $6)
+     VALUES ($1, $2, $3, $4, TRUE, $5, $6)
      RETURNING id, name, email, password_hash, role, email_verified`,
     [
       input.name,
@@ -107,8 +114,7 @@ export async function register(input: {
   );
   const user = rows[0];
 
-  // Fire-and-forget — mail.send swallows its own errors so a Resend hiccup
-  // never blocks sign-up. The user can hit "renvoyer le mail" from the UI.
+  // Best-effort send — fails silently on Render free where SMTP is blocked.
   void sendVerificationEmail({
     to: user.email,
     name: user.name,

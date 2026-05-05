@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { Loader2, Mail, Pencil, Trash2, UserPlus } from "lucide-react";
+import { Check, Copy, Link2, Loader2, Mail, Pencil, Trash2, UserPlus } from "lucide-react";
 import { api, apiError } from "../../api/client";
 import Modal from "../../components/Modal";
 import PageHeader from "../../components/PageHeader";
@@ -75,6 +75,12 @@ export default function TeamPage() {
   const [inviteSubmitting, setInviteSubmitting] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
 
+  // Share-link modal — shown after a successful invitation. The admin copies
+  // the link and shares it manually (WhatsApp, SMS, in person...). This is the
+  // primary delivery mechanism since Render free blocks SMTP outbound.
+  const [shareInvite, setShareInvite] = useState<Invitation | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
   // Edit modal
   const [editOpen, setEditOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -112,17 +118,29 @@ export default function TeamPage() {
     setInviteSubmitting(true);
     setInviteError(null);
     try {
-      await api.post("/invitations", {
+      const res = await api.post<Invitation>("/invitations", {
         email: invite.email,
         role: invite.role,
         department_id: invite.department_id || null,
       });
       setInviteOpen(false);
+      setShareInvite(res.data);
       await refresh();
     } catch (err) {
       setInviteError(apiError(err));
     } finally {
       setInviteSubmitting(false);
+    }
+  }
+
+  async function copyLink(invitation: Invitation) {
+    try {
+      await navigator.clipboard.writeText(invitation.accept_url);
+      setCopiedId(invitation.id);
+      setTimeout(() => setCopiedId((c) => (c === invitation.id ? null : c)), 1500);
+    } catch {
+      // Clipboard API can fail on insecure contexts — fall back to selecting.
+      window.prompt("Copiez ce lien :", invitation.accept_url);
     }
   }
 
@@ -245,14 +263,30 @@ export default function TeamPage() {
                             </span>
                           </Td>
                           <Td className="text-right">
-                            <button
-                              className="btn-ghost btn-xs text-red-600 hover:bg-red-50"
-                              onClick={() => revokeInvitation(inv.id)}
-                              aria-label="Annuler"
-                              title="Annuler l'invitation"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </button>
+                            <div className="flex items-center justify-end gap-1">
+                              {inv.status === "pending" && (
+                                <button
+                                  className="btn-ghost btn-xs"
+                                  onClick={() => copyLink(inv)}
+                                  aria-label="Copier le lien"
+                                  title="Copier le lien d'invitation"
+                                >
+                                  {copiedId === inv.id ? (
+                                    <Check className="h-3 w-3 text-emerald-600" />
+                                  ) : (
+                                    <Copy className="h-3 w-3" />
+                                  )}
+                                </button>
+                              )}
+                              <button
+                                className="btn-ghost btn-xs text-red-600 hover:bg-red-50"
+                                onClick={() => revokeInvitation(inv.id)}
+                                aria-label="Annuler"
+                                title="Annuler l'invitation"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            </div>
                           </Td>
                         </tr>
                       ))}
@@ -338,7 +372,7 @@ export default function TeamPage() {
       <Modal
         open={inviteOpen}
         title="Inviter un membre"
-        description="Un email sera envoyé avec un lien pour accepter l'invitation."
+        description="Un lien d'invitation sera généré — vous pourrez le copier et l'envoyer par le moyen de votre choix."
         onClose={() => setInviteOpen(false)}
         footer={
           <>
@@ -499,6 +533,60 @@ export default function TeamPage() {
             </select>
           </div>
         </form>
+      </Modal>
+
+      {/* Share-link modal — shown right after a successful invitation */}
+      <Modal
+        open={shareInvite !== null}
+        title="Invitation créée"
+        description="Copiez ce lien et envoyez-le à la personne invitée (WhatsApp, SMS, en personne…)."
+        onClose={() => setShareInvite(null)}
+        footer={
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => setShareInvite(null)}
+          >
+            Terminé
+          </button>
+        }
+      >
+        {shareInvite && (
+          <div className="space-y-4">
+            <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
+              <div className="flex items-center gap-2 text-xs text-neutral-500">
+                <Link2 className="h-3 w-3" />
+                Pour : <span className="font-medium text-neutral-900">{shareInvite.email}</span>
+              </div>
+              <div className="mt-3 flex items-center gap-2">
+                <code className="flex-1 truncate rounded-md bg-white border border-neutral-200 px-2.5 py-2 text-xs font-mono text-neutral-700">
+                  {shareInvite.accept_url}
+                </code>
+                <button
+                  type="button"
+                  className="btn-secondary btn-sm shrink-0"
+                  onClick={() => copyLink(shareInvite)}
+                >
+                  {copiedId === shareInvite.id ? (
+                    <>
+                      <Check className="h-3.5 w-3.5 text-emerald-600" />
+                      Copié
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-3.5 w-3.5" />
+                      Copier
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+            <p className="text-xs text-neutral-500">
+              Le lien expire dans 7 jours. Il peut être recopié à tout moment depuis la liste
+              des invitations.
+            </p>
+          </div>
+        )}
       </Modal>
     </div>
   );
