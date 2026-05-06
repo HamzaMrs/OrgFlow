@@ -11,7 +11,7 @@ import { analyticsRouter } from "./features/analytics/analytics.routes";
 import { invitationsRouter } from "./features/invitations/invitations.routes";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 import { apiLimiter } from "./middleware/rateLimit";
-import { pool } from "./db/pool";
+import { pool, query } from "./db/pool";
 import cookieParser from "cookie-parser";
 
 export const app = express();
@@ -66,8 +66,21 @@ app.use(
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan(env.NODE_ENV === "production" ? "combined" : "dev"));
 
-app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok", service: "orgflow-api", time: new Date().toISOString() });
+app.get("/api/health", async (_req, res) => {
+  // Hits the DB so a single keep-alive cron keeps both Render (no cold start)
+  // and Supabase (no auto-pause after 7 days of inactivity) awake.
+  try {
+    await query("SELECT 1");
+    res.json({ status: "ok", service: "orgflow-api", db: "ok", time: new Date().toISOString() });
+  } catch (err) {
+    res.status(503).json({
+      status: "error",
+      service: "orgflow-api",
+      db: "down",
+      time: new Date().toISOString(),
+      error: err instanceof Error ? err.message : "unknown",
+    });
+  }
 });
 
 const apiRouter = express.Router();
